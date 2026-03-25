@@ -1,0 +1,192 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Design tokens (light = default, dark override via html.dark) ─────────── */
+
+:root {
+  --bg-canvas: #f5f6fa;
+  --bg-surface: #ffffff;
+  --bg-elevated: #eef0f7;
+  --accent: #06b6d4;
+  --accent-light: #22d3ee;
+  --accent-dark: #0891b2;
+  --text-primary: #0f0f1a;
+  --text-secondary: #585870;
+  --text-muted: #8888a8;
+  --text-faint: #aaaac0;
+  --border-subtle: rgba(0, 0, 0, 0.10);
+  --border-default: rgba(0, 0, 0, 0.16);
+  --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* Component-level tokens */
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(0, 0, 0, 0.16);
+  --bezel-bg: rgba(0, 0, 0, 0.05);
+  --bezel-border: rgba(0, 0, 0, 0.18);
+  --swap-bg: rgba(0, 0, 0, 0.04);
+  --swap-border: rgba(0, 0, 0, 0.18);
+  --skeleton-from: rgba(0, 0, 0, 0.04);
+  --skeleton-mid: rgba(0, 0, 0, 0.08);
+}
+
+html.dark {
+  --bg-canvas: #07070e;
+  --bg-surface: #0d0d1a;
+  --bg-elevated: #12121f;
+  --text-primary: #f0f0f8;
+  --text-secondary: #8b8ba8;
+  --text-muted: #4a4a6a;
+  --text-faint: #3f3f52;
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-default: rgba(255, 255, 255, 0.10);
+
+  --glass-bg: rgba(13, 13, 26, 0.75);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --bezel-bg: rgba(255, 255, 255, 0.03);
+  --bezel-border: rgba(255, 255, 255, 0.07);
+  --swap-bg: rgba(255, 255, 255, 0.04);
+  --swap-border: rgba(255, 255, 255, 0.08);
+  --skeleton-from: rgba(255, 255, 255, 0.04);
+  --skeleton-mid: rgba(255, 255, 255, 0.08);
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  font-family: 'Geist', system-ui, sans-serif;
+  overflow-x: hidden;
+  line-height: 1.6;
+  transition: background-color 0.35s cubic-bezier(0.32, 0.72, 0, 1),
+              color 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--bg-canvas); }
+::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--accent-dark); }
+
+/* Selection */
+::selection {
+  background: rgba(6, 182, 212, 0.22);
+  color: #22d3ee;
+}
+
+/* Noise grain overlay — fixed, pointer-events-none, no scroll repaints */
+.noise-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.022;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+}
+
+/* Skeleton shimmer — adapts via CSS vars */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--skeleton-from) 25%,
+    var(--skeleton-mid) 50%,
+    var(--skeleton-from) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+/* Mesh gradient hero background */
+.mesh-bg {
+  background:
+    radial-gradient(ellipse 80% 60% at 15% 55%, rgba(6, 182, 212, 0.075) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 85% 20%, rgba(8, 145, 178, 0.055) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 50% at 60% 85%, rgba(6, 182, 212, 0.04) 0%, transparent 55%);
+}
+
+/* Glassmorphism card — adapts via CSS vars */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.08),
+    0 24px 64px rgba(0, 0, 0, 0.12);
+}
+
+html.dark .glass-card {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+    0 24px 64px rgba(0, 0, 0, 0.5);
+}
+
+/* Double-bezel outer shell — adapts via CSS vars */
+.bezel-outer {
+  background: var(--bezel-bg);
+  border: 1px solid var(--bezel-border);
+  padding: 1px;
+  border-radius: 1.5rem;
+}
+
+/* Swap input field — adapts via CSS vars */
+.swap-input {
+  background: var(--swap-bg);
+  border: 1px solid var(--swap-border);
+  transition: all 0.35s var(--ease-spring);
+  border-radius: 0.875rem;
+  width: 100%;
+  color: var(--text-primary);
+}
+
+.swap-input:focus {
+  border-color: rgba(6, 182, 212, 0.45);
+  background: rgba(6, 182, 212, 0.04);
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.09);
+  outline: none;
+}
+
+/* Accent glow strip */
+.accent-line {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(6, 182, 212, 0.6), transparent);
+}
+
+/* Number monospace */
+.num {
+  font-family: 'Geist Mono', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Page transition wrapper */
+.page-enter {
+  opacity: 0;
+  transform: translateY(16px);
+}
+
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: all 0.5s var(--ease-spring);
+}
