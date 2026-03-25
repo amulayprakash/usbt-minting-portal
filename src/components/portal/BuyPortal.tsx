@@ -160,13 +160,17 @@ export default function BuyPortal() {
 
       // TronWeb may return BigNumber (bignumber.js) or bigint depending on
       // the installed TronLink version; normalise to bigint for safe comparison.
-      const rawAllowance = await usdtContract
+      const rawAllowance: unknown = await usdtContract
         .allowance(account, CONTRACTS.STABLE)
         .call();
       const currentAllowance = BigInt(
         rawAllowance !== null && typeof rawAllowance === 'object'
-          ? (rawAllowance[0] ?? rawAllowance.remaining ?? rawAllowance).toString()
-          : rawAllowance.toString()
+          ? (
+              (rawAllowance as Record<string | number, unknown>)[0] ??
+              (rawAllowance as Record<string, unknown>)['remaining'] ??
+              rawAllowance
+            ).toString()
+          : String(rawAllowance)
       );
 
       if (currentAllowance < amountUnits) {
