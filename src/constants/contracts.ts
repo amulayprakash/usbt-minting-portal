@@ -65,7 +65,8 @@ export const TRC20_ABI = [
 
 /**
  * USBT minting contract ABI
- * buyTokens selector: 0x3610724e → buyTokens(uint256 usdtAmount)
+ * buyTokens selector:    0x3610724e → buyTokens(uint256 usdtAmount)
+ * exchangeRate selector: 0x3ba0b9a9 → exchangeRate() → uint256
  * Returns amount of USBT minted.
  */
 export const STABLE_ABI = [
@@ -73,6 +74,13 @@ export const STABLE_ABI = [
     constant: false,
     inputs: [{ name: 'usdtAmount', type: 'uint256' }],
     name: 'buyTokens',
+    outputs: [{ name: '', type: 'uint256' }],
+    type: 'Function',
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: 'exchangeRate',
     outputs: [{ name: '', type: 'uint256' }],
     type: 'Function',
   },

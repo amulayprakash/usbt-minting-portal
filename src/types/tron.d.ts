@@ -23,6 +23,10 @@ export interface TronWebInstance {
   };
   ready: boolean;
   fullNode: { host: string };
+  address: {
+    toHex: (base58: string) => string;
+    fromHex: (hex: string) => string;
+  };
   contract: (abi: object[], address: string) => Promise<TronContract>;
   trx: {
     getBalance: (address: string) => Promise<number>;

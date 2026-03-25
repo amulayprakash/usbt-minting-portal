@@ -1,10 +1,39 @@
 /**
  * TronGrid REST API helpers
- * Used when window.tronWeb is unavailable (WalletConnect-only sessions)
- * or to build raw unsigned transactions for WC signing.
+ * Used to build/broadcast raw transactions and read contract state
+ * without relying on window.tronWeb, which TronLink wraps in an async
+ * Proxy that breaks synchronous utility calls like address.toHex().
  */
 
 const TRON_GRID_URL = import.meta.env.VITE_TRON_FULL_NODE as string;
+const TRONGRID_API_KEY = (import.meta.env.VITE_TRONGRID_API_KEY as string | undefined) ?? '';
+
+function tronGridHeaders(extra?: Record<string, string>): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json', ...extra };
+  if (TRONGRID_API_KEY) headers['TRON-PRO-API-KEY'] = TRONGRID_API_KEY;
+  return headers;
+}
+
+/**
+ * Convert a Tron base58check address to the 42-char hex TronWeb uses
+ * internally (e.g. "41a614f803b6fd780986a42c78ec9c7f77e6ded13c").
+ *
+ * Pure synchronous JS — never touches window.tronWeb so it is safe to call
+ * even when TronLink's Proxy wraps every tronWeb method as async.
+ *
+ * Tron address = base58check 25 bytes: [0x41 version][20-byte addr][4-byte checksum]
+ * Hex form = first 21 bytes → "41" + 40 hex chars = 42 chars total.
+ */
+export function tronB58ToHex(addr: string): string {
+  const ALPHA = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+  let n = 0n;
+  for (const ch of addr) {
+    const i = ALPHA.indexOf(ch);
+    if (i < 0) throw new Error(`Invalid base58 char: ${ch}`);
+    n = n * 58n + BigInt(i);
+  }
+  return n.toString(16).padStart(50, '0').slice(0, 42);
+}
 
 /** Encode a uint256 as a 32-byte ABI parameter (hex string, no 0x prefix) */
 export function abiEncodeUint256(n: bigint | number | string): string {
@@ -12,18 +41,12 @@ export function abiEncodeUint256(n: bigint | number | string): string {
 }
 
 /**
- * Encode a Tron address as a 32-byte ABI parameter.
- * Requires window.tronWeb to convert from base58, which is available
- * whenever TronLink is installed alongside WalletConnect.
+ * Encode a Tron base58 address as a 32-byte ABI parameter.
+ * Uses pure-JS base58 decode — no dependency on window.tronWeb.
  */
 export function abiEncodeAddress(base58Addr: string): string {
-  if (!window.tronWeb) throw new Error('TronWeb not available for address encoding');
-  // tronWeb converts base58 → hex starting with "41"
-  const fullHex: string = (window.tronWeb as any).address
-    ? (window.tronWeb as any).address.toHex(base58Addr)
-    : base58Addr;
-  // Remove "41" Tron prefix to get 20-byte EVM address
-  const evmHex = fullHex.startsWith('41') ? fullHex.slice(2) : fullHex;
+  const fullHex = tronB58ToHex(base58Addr); // "41" + 40 chars
+  const evmHex = fullHex.slice(2);          // remove "41" → 20-byte EVM address
   return evmHex.padStart(64, '0');
 }
 
@@ -62,7 +85,7 @@ export async function buildTriggerSmartContract(params: {
 
   const res = await fetch(`${TRON_GRID_URL}/wallet/triggersmartcontract`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: tronGridHeaders(),
     body: JSON.stringify(body),
   });
 
@@ -87,7 +110,7 @@ export async function buildTriggerSmartContract(params: {
 export async function broadcastTransaction(signedTx: object): Promise<string> {
   const res = await fetch(`${TRON_GRID_URL}/wallet/broadcasttransaction`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: tronGridHeaders(),
     body: JSON.stringify(signedTx),
   });
 
@@ -124,7 +147,7 @@ export async function callContractConstant(params: {
 
   const res = await fetch(`${TRON_GRID_URL}/wallet/triggerconstantcontract`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: tronGridHeaders(),
     body: JSON.stringify(body),
   });
 

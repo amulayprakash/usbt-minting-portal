@@ -3,86 +3,139 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowDown,
-  Info,
   ArrowSquareOut,
   CheckCircle,
   Warning,
   X,
+  Gift,
 } from '@phosphor-icons/react';
 import Button from '../ui/Button';
 import { useWallet } from '../../hooks/useWallet';
 import { useToast } from '../../hooks/useToast';
-import { useTokenPrice } from '../../hooks/useTokenPrice';
 import {
   CONTRACTS,
-  TRC20_ABI,
-  STABLE_ABI,
   DECIMALS_FACTOR,
-  DEFAULT_SLIPPAGE_BPS,
   FEE_LIMIT_SUN,
   TRONSCAN_TX_URL,
 } from '../../constants/contracts';
 import {
   buildTriggerSmartContract,
+  broadcastTransaction,
+  callContractConstant,
   abiEncodeUint256,
   abiEncodeAddress,
+  tronB58ToHex,
 } from '../../lib/tronGrid';
 
 type TxStep = 'idle' | 'approving' | 'approved' | 'buying' | 'success' | 'error';
 
-export default function BuyPortal() {
+
+export default function BuyPortal({ prefillAmount }: { prefillAmount?: number | null }) {
   const { account, isConnected, connect, isConnecting, connectionType, wcSignAndBroadcast } = useWallet();
   const { addToast } = useToast();
-  const { price, getAmountsOut } = useTokenPrice();
 
   const [usdtAmount, setUsdtAmount] = useState('');
   const [usbtOut, setUsbtOut] = useState<number | null>(null);
   const [usdtBalance, setUsdtBalance] = useState<number | null>(null);
   const [usbtBalance, setUsbtBalance] = useState<number | null>(null);
+  const [exchangeRate, setExchangeRate] = useState<number | null>(null);
   const [step, setStep] = useState<TxStep>('idle');
   const [txid, setTxid] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [slippage] = useState(DEFAULT_SLIPPAGE_BPS / 100); // 0.5%
   const [quoteLoading, setQuoteLoading] = useState(false);
 
-  // Fetch balances on wallet connect
+  // Fetch balances + exchange rate on wallet connect (or on mount via public call)
   useEffect(() => {
-    if (!isConnected || !account || !window.tronWeb) return;
+    fetchExchangeRate();
+  }, []);
+
+  useEffect(() => {
+    if (!isConnected || !account) return;
     fetchBalances();
   }, [isConnected, account]);
 
-  const fetchBalances = useCallback(async () => {
-    if (!window.tronWeb || !account) return;
+  const fetchExchangeRate = useCallback(async () => {
     try {
-      const usdt = await window.tronWeb.contract(TRC20_ABI as unknown as object[], CONTRACTS.COLLATERAL);
-      const usbtC = await window.tronWeb.contract(STABLE_ABI as unknown as object[], CONTRACTS.STABLE);
+      const hex = await callContractConstant({
+        ownerAddress: CONTRACTS.STABLE, // dummy owner for view call
+        contractAddress: CONTRACTS.STABLE,
+        functionSelector: 'exchangeRate()',
+      });
+      if (!hex) return;
+      const rate = Number(BigInt('0x' + hex));
+      if (!isNaN(rate) && rate > 0) setExchangeRate(rate);
+    } catch {
+      // Silently fail
+    }
+  }, []);
 
-      const [rawUsdt, rawUsbt] = await Promise.all([
-        usdt.balanceOf(account).call() as Promise<bigint>,
-        usbtC.balanceOf(account).call() as Promise<bigint>,
+  const fetchBalances = useCallback(async () => {
+    if (!account) return;
+    try {
+      const balanceParam = abiEncodeAddress(account);
+      const [usdtHex, usbtHex] = await Promise.all([
+        callContractConstant({
+          ownerAddress: account,
+          contractAddress: CONTRACTS.COLLATERAL,
+          functionSelector: 'balanceOf(address)',
+          parameter: balanceParam,
+        }),
+        callContractConstant({
+          ownerAddress: account,
+          contractAddress: CONTRACTS.STABLE,
+          functionSelector: 'balanceOf(address)',
+          parameter: balanceParam,
+        }),
       ]);
-
-      setUsdtBalance(Number(rawUsdt) / DECIMALS_FACTOR);
-      setUsbtBalance(Number(rawUsbt) / DECIMALS_FACTOR);
+      if (usdtHex) setUsdtBalance(Number(BigInt('0x' + usdtHex)) / DECIMALS_FACTOR);
+      if (usbtHex) setUsbtBalance(Number(BigInt('0x' + usbtHex)) / DECIMALS_FACTOR);
+      fetchExchangeRate();
     } catch {
       // Silently fail — balances are display-only
     }
-  }, [account]);
+  }, [account, fetchExchangeRate]);
 
-  // Debounced quote
+  // Calculate USBT output from exchangeRate whenever input changes
   useEffect(() => {
-    if (!usdtAmount || Number(usdtAmount) <= 0) {
+    const parsed = Number(usdtAmount);
+    if (!usdtAmount || parsed <= 0) {
       setUsbtOut(null);
       return;
     }
+    // RATE_PRECISION = 100000 (5-decimal precision in contract)
+    // usbtOut = usdtAmount * exchangeRate / 100_000
+    if (exchangeRate !== null) {
+      setUsbtOut((parsed * exchangeRate) / 100_000);
+      return;
+    }
+    // exchangeRate not loaded yet — fetch via TronGrid then calculate
     setQuoteLoading(true);
     const t = setTimeout(async () => {
-      const out = await getAmountsOut(Number(usdtAmount), false);
-      setUsbtOut(out);
+      try {
+        const hex = await callContractConstant({
+          ownerAddress: CONTRACTS.STABLE,
+          contractAddress: CONTRACTS.STABLE,
+          functionSelector: 'exchangeRate()',
+        });
+        if (hex) {
+          const rate = Number(BigInt('0x' + hex));
+          if (!isNaN(rate) && rate > 0) {
+            setExchangeRate(rate);
+            setUsbtOut((parsed * rate) / 100_000);
+          }
+        }
+      } catch { /* ignore */ }
       setQuoteLoading(false);
     }, 400);
     return () => clearTimeout(t);
-  }, [usdtAmount, getAmountsOut]);
+  }, [usdtAmount, exchangeRate]);
+
+  // Sync prefill from parent (offer card click)
+  useEffect(() => {
+    if (prefillAmount != null && prefillAmount > 0) {
+      setUsdtAmount(String(prefillAmount));
+    }
+  }, [prefillAmount]);
 
   const handleMaxUsdt = () => {
     if (usdtBalance !== null) {
@@ -104,21 +157,42 @@ export default function BuyPortal() {
     try {
       // ── WalletConnect path ─────────────────────────────────────────────
       if (connectionType === 'walletconnect') {
-        // 1. Check current allowance via TronGrid constant call
-        setStep('approving');
+        // 1. Check if unlimited approval already granted (localStorage cache + on-chain fallback)
+        const wcApprovalKey = `usbt_approved_${account}_${CONTRACTS.STABLE}`;
+        let wcNeedsApproval = localStorage.getItem(wcApprovalKey) !== 'true';
 
-        // Build approve tx if needed
-        const approveParam =
-          abiEncodeAddress(CONTRACTS.STABLE) + abiEncodeUint256(maxUint256);
-        const approveTx = await buildTriggerSmartContract({
-          ownerAddress: account,
-          contractAddress: CONTRACTS.COLLATERAL,
-          functionSelector: 'approve(address,uint256)',
-          parameter: approveParam,
-          feeLimit: FEE_LIMIT_SUN,
-        });
-        await wcSignAndBroadcast(approveTx);
-        addToast({ type: 'info', title: 'USDT approved', message: 'Confirm purchase in wallet.' });
+        if (wcNeedsApproval) {
+          try {
+            const wcAllowanceHex = await callContractConstant({
+              ownerAddress: account,
+              contractAddress: CONTRACTS.COLLATERAL,
+              functionSelector: 'allowance(address,address)',
+              parameter: abiEncodeAddress(account) + abiEncodeAddress(CONTRACTS.STABLE),
+            });
+            if (wcAllowanceHex) {
+              const wcAllowance = BigInt('0x' + wcAllowanceHex);
+              if (wcAllowance >= amountUnits) {
+                wcNeedsApproval = false;
+                localStorage.setItem(wcApprovalKey, 'true');
+              }
+            }
+          } catch { /* ignore */ }
+        }
+
+        if (wcNeedsApproval) {
+          setStep('approving');
+          const approveParam = abiEncodeAddress(CONTRACTS.STABLE) + abiEncodeUint256(maxUint256);
+          const approveTx = await buildTriggerSmartContract({
+            ownerAddress: account,
+            contractAddress: CONTRACTS.COLLATERAL,
+            functionSelector: 'approve(address,uint256)',
+            parameter: approveParam,
+            feeLimit: FEE_LIMIT_SUN,
+          });
+          await wcSignAndBroadcast(approveTx);
+          localStorage.setItem(wcApprovalKey, 'true');
+          addToast({ type: 'info', title: 'USDT approved', message: 'Confirm purchase in wallet.' });
+        }
 
         // 2. Buy tokens
         setStep('buying');
@@ -142,67 +216,82 @@ export default function BuyPortal() {
       }
 
       // ── TronLink path ──────────────────────────────────────────────────
+      // We bypass tronWeb.contract() entirely. TronLink wraps window.tronWeb
+      // in an async Proxy, so any synchronous TronWeb utility (address.toHex,
+      // contract(), etc.) silently returns a Promise → crashes deep inside
+      // TronWeb with "Cannot read properties of undefined (reading 'toLowerCase')".
+      //
+      // Instead we use the same pattern as WalletConnect:
+      //   1. Read allowance via TronGrid HTTP (callContractConstant)
+      //   2. Build raw unsigned txs via TronGrid HTTP (buildTriggerSmartContract)
+      //   3. Sign via tronWeb.trx.sign() — TronLink intercepts this natively
+      //      and shows the confirmation popup, no Proxy issues involved.
+      //   4. Broadcast via TronGrid HTTP (broadcastTransaction)
       if (!window.tronWeb) throw new Error('TronLink not detected. Please connect TronLink.');
+      const tronWeb: any = window.tronWeb;
 
-      // Ensure TronWeb's internal defaultAddress is synced — prevents
-      // "Cannot read properties of undefined (reading 'toLowerCase')"
-      // which occurs when TronLink connects via the newer requestAccounts
-      // API and window.tronWeb.defaultAddress.hex is left undefined.
-      if (typeof (window.tronWeb as any).setAddress === 'function') {
-        (window.tronWeb as any).setAddress(account);
+      // Step 1 — Check if unlimited approval already granted.
+      // We cache approval in localStorage (keyed to wallet+spender) so we
+      // never re-prompt after the first successful unlimited approval.
+      // We also verify on-chain via TronGrid; localStorage is the fallback
+      // when TronGrid returns an unexpected empty result.
+      const approvalKey = `usbt_approved_${account}_${CONTRACTS.STABLE}`;
+      let needsApproval = localStorage.getItem(approvalKey) !== 'true';
+
+      if (needsApproval) {
+        // Try on-chain check; if it shows sufficient allowance, mark approved
+        try {
+          const allowanceHex = await callContractConstant({
+            ownerAddress: account,
+            contractAddress: CONTRACTS.COLLATERAL,
+            functionSelector: 'allowance(address,address)',
+            parameter: abiEncodeAddress(account) + abiEncodeAddress(CONTRACTS.STABLE),
+          });
+          if (allowanceHex) {
+            const currentAllowance = BigInt('0x' + allowanceHex);
+            if (currentAllowance >= amountUnits) {
+              needsApproval = false;
+              localStorage.setItem(approvalKey, 'true');
+            }
+          }
+        } catch { /* ignore — will fall through to approval */ }
       }
 
-      // Step 1 — Check allowance
-      const usdtContract = await window.tronWeb.contract(
-        TRC20_ABI as unknown as object[],
-        CONTRACTS.COLLATERAL
-      );
-
-      // TronWeb may return BigNumber (bignumber.js) or bigint depending on
-      // the installed TronLink version; normalise to bigint for safe comparison.
-      const rawAllowance: unknown = await usdtContract
-        .allowance(account, CONTRACTS.STABLE)
-        .call();
-      const currentAllowance = BigInt(
-        rawAllowance !== null && typeof rawAllowance === 'object'
-          ? (
-              (rawAllowance as Record<string | number, unknown>)[0] ??
-              (rawAllowance as Record<string, unknown>)['remaining'] ??
-              rawAllowance
-            ).toString()
-          : String(rawAllowance)
-      );
-
-      if (currentAllowance < amountUnits) {
+      if (needsApproval) {
         setStep('approving');
-        await usdtContract.approve(CONTRACTS.STABLE, maxUint256).send({
-          from: account,
+
+        const approveParam = abiEncodeAddress(CONTRACTS.STABLE) + abiEncodeUint256(maxUint256);
+        const approveTxObj = await buildTriggerSmartContract({
+          ownerAddress: account,
+          contractAddress: CONTRACTS.COLLATERAL,
+          functionSelector: 'approve(address,uint256)',
+          parameter: approveParam,
           feeLimit: FEE_LIMIT_SUN,
         });
-        addToast({
-          type: 'info',
-          title: 'USDT approved',
-          message: 'You can now confirm the purchase.',
-        });
-      }
 
-      setStep('buying');
+        // TronLink intercepts trx.sign() and shows the wallet popup
+        const signedApprove = await tronWeb.trx.sign(approveTxObj);
+        await broadcastTransaction(signedApprove);
+
+        // Persist approval so future buys skip this step
+        localStorage.setItem(approvalKey, 'true');
+        addToast({ type: 'info', title: 'USDT approved', message: 'Confirm purchase in wallet.' });
+      }
 
       // Step 2 — Buy tokens
-      const stableContract = await window.tronWeb.contract(
-        STABLE_ABI as unknown as object[],
-        CONTRACTS.STABLE
-      );
+      setStep('buying');
 
-      const result = await stableContract
-        .buyTokens(amountUnits)
-        .send({
-          from: account,
-          feeLimit: FEE_LIMIT_SUN,
-        });
+      const buyParam = abiEncodeUint256(amountUnits);
+      const buyTxObj = await buildTriggerSmartContract({
+        ownerAddress: account,
+        contractAddress: CONTRACTS.STABLE,
+        functionSelector: 'buyTokens(uint256)',
+        parameter: buyParam,
+        feeLimit: FEE_LIMIT_SUN,
+      });
 
-      const hash: string =
-        result?.txid ?? result?.transaction?.txID ?? '';
+      const signedBuy = await tronWeb.trx.sign(buyTxObj);
+      const hash = await broadcastTransaction(signedBuy);
 
       setTxid(hash);
       setStep('success');
@@ -213,7 +302,7 @@ export default function BuyPortal() {
       addToast({
         type: 'success',
         title: 'Purchase complete',
-        message: `USBT has been added to your wallet.`,
+        message: 'USBT has been added to your wallet.',
         txid: hash,
         duration: 8000,
       });
@@ -239,10 +328,19 @@ export default function BuyPortal() {
   const insufficient = usdtBalance !== null && parsedUsdt > usdtBalance;
   const canSubmit = isConnected && parsedUsdt > 0 && !insufficient && step !== 'success';
 
+  // Bonus tier active for current input amount
+  const activeBonus =
+    parsedUsdt >= 100_000 ? 20 :
+    parsedUsdt >= 50_000  ? 15 :
+    parsedUsdt >= 20_000  ? 10 : 0;
+  const bonusUsbt = activeBonus > 0 && usbtOut !== null && !isNaN(usbtOut)
+    ? (usbtOut * activeBonus) / 100
+    : 0;
+
   return (
     <div className="w-full max-w-md mx-auto">
       {/* Outer bezel */}
-      <div className="bezel-outer">
+      <div className="bezel-outer" id="buy-portal-card">
         <div
           className="rounded-[calc(1.5rem-1px)] p-6"
           style={{
@@ -259,13 +357,13 @@ export default function BuyPortal() {
               </p>
               <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">Buy USBT</h2>
             </div>
-            {price !== null && (
+            {exchangeRate !== null && (
               <div className="text-right">
                 <p className="text-[10px] text-slate-400 dark:text-[#4a4a6a] uppercase tracking-wide mb-0.5">
-                  Price
+                  Rate
                 </p>
                 <p className="num text-sm font-bold text-cyan-600 dark:text-cyan-400">
-                  ${price.toFixed(4)}
+                  1 USDT = {(exchangeRate / 100_000).toLocaleString()} USBT
                 </p>
               </div>
             )}
@@ -346,7 +444,7 @@ export default function BuyPortal() {
                     )}
                   </div>
                   <div
-                    className="swap-input px-4 py-4 pr-20 rounded-2xl flex items-center justify-between"
+                    className="swap-input relative px-4 py-4 pr-20 rounded-2xl"
                     style={{ minHeight: 62 }}
                   >
                     <span
@@ -363,7 +461,7 @@ export default function BuyPortal() {
                         '0.00'
                       )}
                     </span>
-                    <div className="flex items-center gap-1.5">
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
                       <div className="w-5 h-5 rounded-full bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center">
                         <span className="text-[7px] font-black text-cyan-600 dark:text-cyan-400">U</span>
                       </div>
@@ -380,10 +478,9 @@ export default function BuyPortal() {
                     className="mb-5 p-3.5 rounded-xl bg-black/[0.03] dark:bg-white/[0.03] border border-black/[0.16] dark:border-white/[0.06] space-y-2"
                   >
                     <DetailRow
-                      label="Rate"
-                      value={`1 USBT = ${price !== null ? `$${price.toFixed(4)}` : '—'} USDT`}
+                      label="Exchange rate"
+                      value={exchangeRate !== null ? `1 USDT = ${(exchangeRate / 100_000).toLocaleString()} USBT` : '—'}
                     />
-                    <DetailRow label="Slippage tolerance" value={`${slippage}%`} />
                     <DetailRow label="Network fee" value="~1–5 TRX" />
                     <DetailRow
                       label="Contract"
@@ -392,6 +489,50 @@ export default function BuyPortal() {
                     />
                   </motion.div>
                 )}
+
+                {/* Bonus banner */}
+                <AnimatePresence>
+                  {activeBonus > 0 && bonusUsbt > 0 && (
+                    <motion.div
+                      key="bonus-banner"
+                      initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                      transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+                      className={`mb-4 p-3.5 rounded-xl border flex items-start gap-3 ${
+                        activeBonus === 20
+                          ? 'bg-amber-500/[0.08] border-amber-500/25'
+                          : activeBonus === 15
+                          ? 'bg-violet-500/[0.08] border-violet-500/25'
+                          : 'bg-cyan-500/[0.08] border-cyan-500/25'
+                      }`}
+                    >
+                      <Gift
+                        size={16}
+                        weight="fill"
+                        className={`mt-0.5 flex-shrink-0 ${
+                          activeBonus === 20 ? 'text-amber-400' : activeBonus === 15 ? 'text-violet-400' : 'text-cyan-400'
+                        }`}
+                      />
+                      <div>
+                        <p className={`text-xs font-semibold mb-0.5 ${
+                          activeBonus === 20 ? 'text-amber-300' : activeBonus === 15 ? 'text-violet-300' : 'text-cyan-300'
+                        }`}>
+                          {activeBonus}% Bonus Active
+                        </p>
+                        <p className="text-[11px] text-slate-500 dark:text-[#8b8ba8] leading-relaxed">
+                          You will receive an extra{' '}
+                          <span className={`font-bold ${
+                            activeBonus === 20 ? 'text-amber-400' : activeBonus === 15 ? 'text-violet-400' : 'text-cyan-400'
+                          }`}>
+                            {bonusUsbt.toLocaleString(undefined, { maximumFractionDigits: 4 })} USBT
+                          </span>{' '}
+                          after the transaction is completed.
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 {/* Status label during approval / buying */}
                 {(step === 'approving' || step === 'buying') && (
