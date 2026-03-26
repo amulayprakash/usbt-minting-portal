@@ -42,7 +42,7 @@ export default function Logo({ size = 'md', showWordmark = true, className }: Lo
 
       {showWordmark && (
         <span className={clsx(textClass, 'font-bold tracking-tight text-white leading-none')}>
-          US<span className="text-cyan-400">BT</span>
+          US<span className="text-cyan-400">BT</span> Exchange
         </span>
       )}
     </Link>
