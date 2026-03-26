@@ -15,8 +15,8 @@ export default function Home() {
       exit={{ opacity: 0 }}
       transition={{ duration: 0.35 }}
     >
-      <PresaleBanner />
       <Hero />
+      <PresaleBanner />
       <TokenStats />
       <Features />
       <Security />

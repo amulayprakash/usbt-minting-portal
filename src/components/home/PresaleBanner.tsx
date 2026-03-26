@@ -1,9 +1,10 @@
 'use client';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, Fire, Warning, Rocket } from '@phosphor-icons/react';
+import { ArrowRight, Fire, Warning } from '@phosphor-icons/react';
 import { useTheme } from '../../hooks/useTheme';
 import { useState, useEffect } from 'react';
+import Button from '../ui/Button';
 
 // Presale ends 15 days from 2026-03-26
 const PRESALE_END = new Date('2026-04-10T23:59:59Z').getTime();
@@ -74,7 +75,7 @@ export default function PresaleBanner() {
 
   return (
     // Outer wrapper: pushes section below navbar with a visible gap
-    <div className="w-full px-4 md:px-6 lg:px-10 pt-32">
+    <div className="w-full px-4 md:px-6 lg:px-10 py-6">
       <motion.section
         initial={{ opacity: 0, y: -16, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -121,31 +122,57 @@ export default function PresaleBanner() {
 
         <div className="noise-overlay absolute inset-0 pointer-events-none" />
 
-        <div className="relative max-w-7xl mx-auto px-6 md:px-10 py-7 md:py-9">
+        {/* Mobile-only full-width PRESALE LIVE banner strip */}
+        <div
+          className="sm:hidden relative flex items-center justify-center gap-3 py-3 px-6"
+          style={{
+            background: isDark
+              ? 'linear-gradient(90deg, rgba(6,182,212,0.22) 0%, rgba(6,182,212,0.12) 50%, rgba(6,182,212,0.22) 100%)'
+              : 'linear-gradient(90deg, rgba(6,182,212,0.18) 0%, rgba(6,182,212,0.08) 50%, rgba(6,182,212,0.18) 100%)',
+            borderBottom: '1px solid rgba(6,182,212,0.35)',
+          }}
+        >
+          <span className="relative flex h-3 w-3 flex-shrink-0">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-400" />
+          </span>
+          <span
+            className="text-[16px] font-black uppercase tracking-[0.28em] text-cyan-400"
+            style={{ textShadow: '0 0 16px rgba(6,182,212,0.8)' }}
+          >
+            Presale Live
+          </span>
+          <span className="relative flex h-3 w-3 flex-shrink-0">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-400" />
+          </span>
+        </div>
+
+        <div className="relative max-w-7xl mx-auto px-6 md:px-10 py-14 md:py-9">
           <div className="flex flex-col xl:flex-row items-center justify-between gap-7 xl:gap-8">
 
             {/* Left — badge + text */}
             <div className="flex flex-col sm:flex-row items-center sm:items-start lg:items-center gap-5 min-w-0">
 
-              {/* Live badge */}
+              {/* Live badge — hidden on mobile (replaced by full-width strip above) */}
               <motion.div
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.15, type: 'spring', stiffness: 300, damping: 22 }}
-                className="flex-shrink-0 flex items-center gap-2.5 px-4 py-2.5 rounded-xl"
+                className="hidden sm:flex flex-shrink-0 items-center gap-3 px-5 py-3 rounded-2xl"
                 style={{
                   background: isDark
-                    ? 'linear-gradient(135deg, rgba(6,182,212,0.18) 0%, rgba(6,182,212,0.08) 100%)'
-                    : 'linear-gradient(135deg, rgba(6,182,212,0.14) 0%, rgba(6,182,212,0.06) 100%)',
-                  border: '1px solid rgba(6,182,212,0.40)',
-                  boxShadow: '0 0 24px rgba(6,182,212,0.20), inset 0 1px 0 rgba(6,182,212,0.15)',
+                    ? 'linear-gradient(135deg, rgba(6,182,212,0.28) 0%, rgba(6,182,212,0.12) 100%)'
+                    : 'linear-gradient(135deg, rgba(6,182,212,0.22) 0%, rgba(6,182,212,0.08) 100%)',
+                  border: '1.5px solid rgba(6,182,212,0.60)',
+                  boxShadow: '0 0 36px rgba(6,182,212,0.35), 0 0 12px rgba(6,182,212,0.20), inset 0 1px 0 rgba(6,182,212,0.25)',
                 }}
               >
-                <span className="relative flex h-2.5 w-2.5">
+                <span className="relative flex h-3 w-3">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-400" />
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-400" />
                 </span>
-                <span className="text-[12px] font-extrabold uppercase tracking-[0.20em] text-cyan-400 whitespace-nowrap">
+                <span className="text-[15px] font-extrabold uppercase tracking-[0.22em] text-cyan-400 whitespace-nowrap drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]">
                   Presale Live
                 </span>
               </motion.div>
@@ -161,11 +188,11 @@ export default function PresaleBanner() {
               >
                 <div className="flex items-center gap-2.5 justify-center sm:justify-start mb-2">
                   <Fire size={18} weight="fill" className="text-amber-400 flex-shrink-0" />
-                  <h2 className="text-lg md:text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                  <h2 className="text-lg md:text-xl font-extrabold text-slate-900 dark:text-white tracking-tight text-center sm:text-left">
                     USBT Presale is now live — buy before the round is over
                   </h2>
                 </div>
-                <p className="text-sm md:text-[15px] text-slate-500 dark:text-[#8b8ba8] max-w-[500px] leading-relaxed">
+                <p className="text-sm md:text-[15px] text-slate-500 dark:text-[#8b8ba8] max-w-[500px] leading-relaxed text-center sm:text-left mx-auto sm:mx-0">
                   Early buyers lock in the best rate. Once this round closes,{' '}
                   <span className="text-slate-800 dark:text-slate-200 font-semibold">pricing moves up permanently</span>.
                 </p>
@@ -210,25 +237,13 @@ export default function PresaleBanner() {
               className="flex flex-col items-center gap-3 flex-shrink-0"
             >
               <Link to="/buy">
-                <button
-                  className="group relative inline-flex items-center gap-3 px-8 py-4 rounded-xl font-extrabold text-[15px] text-white overflow-hidden transition-all duration-200"
-                  style={{
-                    background: 'linear-gradient(135deg, #0891b2 0%, #06b6d4 50%, #22d3ee 100%)',
-                    boxShadow: '0 0 36px rgba(6,182,212,0.50), 0 6px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.25)',
-                  }}
+                <Button
+                  variant="primary"
+                  size="lg"
+                  trailingIcon={<ArrowRight size={12} weight="bold" />}
                 >
-                  <span
-                    className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                    style={{ background: 'linear-gradient(135deg, #0e7490 0%, #0891b2 50%, #06b6d4 100%)' }}
-                  />
-                  <Rocket size={16} weight="fill" className="relative flex-shrink-0" />
-                  <span className="relative tracking-tight">Buy USBT Now</span>
-                  <ArrowRight
-                    size={15}
-                    weight="bold"
-                    className="relative transition-transform duration-200 group-hover:translate-x-1"
-                  />
-                </button>
+                  Buy USBT
+                </Button>
               </Link>
               <span className="text-[11px] font-medium text-slate-400 dark:text-[#4a4a6a]">
                 Secure · On-chain · Instant
