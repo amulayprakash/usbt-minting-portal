@@ -30,6 +30,7 @@ export interface TronWebInstance {
   contract: (abi: object[], address: string) => Promise<TronContract>;
   trx: {
     getBalance: (address: string) => Promise<number>;
+    sign: (transaction: object) => Promise<object>;
   };
   toSun: (amount: string | number) => string;
   fromSun: (amount: string | number) => string;
