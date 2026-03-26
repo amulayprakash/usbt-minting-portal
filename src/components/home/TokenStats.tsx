@@ -102,7 +102,7 @@ export default function TokenStats() {
     <section ref={ref} className="relative">
       <StatsTicker />
 
-      <div className="max-w-7xl mx-auto px-6 py-20">
+      <div className="max-w-7xl mx-auto px-6 py-24">
         {/* Section header */}
         <motion.div
           initial={{ opacity: 0, y: 24 }}
@@ -110,11 +110,11 @@ export default function TokenStats() {
           transition={{ type: 'spring', stiffness: 260, damping: 26 }}
           className="mb-12"
         >
-          <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-slate-400 dark:text-[#4a4a6a] mb-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-slate-400 dark:text-[#4a4a6a] mb-3 text-center sm:text-left">
             Token Overview
           </p>
-          <div className="flex flex-col sm:flex-row sm:items-end gap-4 justify-between">
-            <h2 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900 dark:text-white leading-tight">
+          <div className="flex flex-col sm:flex-row sm:items-end gap-4 justify-between items-center sm:items-end">
+            <h2 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900 dark:text-white leading-tight text-center sm:text-left">
               Live network data
             </h2>
             <a
@@ -162,12 +162,12 @@ export default function TokenStats() {
                 </div>
               )}
 
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-[#4a4a6a] mb-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-[#4a4a6a] mb-3 text-center sm:text-left">
                 {stat.label}
               </p>
 
               <div
-                className={`text-2xl font-black tracking-tight leading-none mb-2 ${
+                className={`text-2xl font-black tracking-tight leading-none mb-2 text-center sm:text-left ${
                   stat.highlight ? 'text-cyan-600 dark:text-cyan-300' : 'text-slate-900 dark:text-white'
                 }`}
               >
@@ -179,7 +179,7 @@ export default function TokenStats() {
               </div>
 
               {stat.sub && (
-                <p className="text-xs text-slate-400 dark:text-[#6b6b88]">{stat.sub}</p>
+                <p className="text-xs text-slate-400 dark:text-[#6b6b88] text-center sm:text-left">{stat.sub}</p>
               )}
             </motion.div>
           ))}

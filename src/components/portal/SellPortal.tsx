@@ -8,6 +8,10 @@ import {
   CheckCircle,
   X,
   Info,
+  ShieldCheck,
+  ShieldWarning,
+  Gear,
+  CaretDown,
 } from '@phosphor-icons/react';
 import Button from '../ui/Button';
 import { useWallet } from '../../hooks/useWallet';
@@ -17,7 +21,6 @@ import {
   CONTRACTS,
   TRC20_ABI,
   STABLE_ABI,
-  ROUTER_ABI,
   DECIMALS_FACTOR,
   DEFAULT_SLIPPAGE_BPS,
   DEFAULT_DEADLINE_MINUTES,
@@ -27,9 +30,10 @@ import {
 } from '../../constants/contracts';
 import {
   buildTriggerSmartContract,
+  broadcastTransaction,
+  callContractConstant,
   abiEncodeUint256,
   abiEncodeAddress,
-  abiEncodeAddressArray,
 } from '../../lib/tronGrid';
 
 type TxStep = 'idle' | 'approving' | 'swapping' | 'success' | 'error';
@@ -46,7 +50,7 @@ export default function SellPortal() {
   const [step, setStep] = useState<TxStep>('idle');
   const [txid, setTxid] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [slippageBps] = useState(DEFAULT_SLIPPAGE_BPS); // 0.5%
+  const [slippageBps] = useState(DEFAULT_SLIPPAGE_BPS);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [priceImpact, setPriceImpact] = useState<number | null>(null);
 
@@ -79,7 +83,6 @@ export default function SellPortal() {
     }
   }, [account]);
 
-  // Debounced quote
   useEffect(() => {
     if (!usbtAmount || Number(usbtAmount) <= 0) {
       setUsdtOut(null);
@@ -91,7 +94,6 @@ export default function SellPortal() {
       const out = await getAmountsOut(Number(usbtAmount), true);
       setUsdtOut(out);
 
-      // Calculate price impact vs spot price
       if (out !== null && price !== null && Number(usbtAmount) > 0) {
         const expectedAtSpot = Number(usbtAmount) * price;
         const impact = ((expectedAtSpot - out) / expectedAtSpot) * 100;
@@ -125,7 +127,6 @@ export default function SellPortal() {
     const path = [CONTRACTS.STABLE, CONTRACTS.COLLATERAL];
 
     try {
-      // ── WalletConnect path ─────────────────────────────────────────────
       if (connectionType === 'walletconnect') {
         setStep('approving');
 
@@ -143,29 +144,25 @@ export default function SellPortal() {
 
         setStep('swapping');
 
-        // swapExactTokensForTokens(uint256,uint256,address[],address,uint256)
-        // Encode: amountIn, amountOutMin, path (dynamic array), to, deadline
         const swapParam =
           abiEncodeUint256(amountUnits) +
           abiEncodeUint256(minOut) +
-          abiEncodeUint256(5 * 32) + // offset for path (5 static slots before dynamic data, 0-indexed: slot 3 = 3*32)
+          abiEncodeUint256(5 * 32) +
           abiEncodeAddress(account) +
           abiEncodeUint256(deadline) +
-          // path array: length + elements
           abiEncodeUint256(path.length) +
           path.map(abiEncodeAddress).join('');
 
-        // Build proper offset (3rd parameter is array, offset = 3 * 32 = 96 = 0x60)
         const swapParamFixed =
           abiEncodeUint256(amountUnits) +
           abiEncodeUint256(minOut) +
-          abiEncodeUint256(160) + // offset = 5 * 32 bytes (5 static params before array)
+          abiEncodeUint256(160) +
           abiEncodeAddress(account) +
           abiEncodeUint256(deadline) +
           abiEncodeUint256(path.length) +
           path.map(abiEncodeAddress).join('');
 
-        void swapParam; // discard first attempt, use fixed version
+        void swapParam;
 
         const swapTx = await buildTriggerSmartContract({
           ownerAddress: account,
@@ -185,25 +182,32 @@ export default function SellPortal() {
         return;
       }
 
-      // ── TronLink path ──────────────────────────────────────────────────
       if (!window.tronWeb) throw new Error('TronLink not detected. Please connect TronLink.');
 
-      // Step 1 — Check USBT allowance for router
-      const usbtContract = await window.tronWeb.contract(
-        STABLE_ABI as unknown as object[],
-        CONTRACTS.STABLE
-      );
-
-      const currentAllowance = (await usbtContract
-        .allowance(account, CONTRACTS.ROUTER)
-        .call()) as bigint;
+      // Check allowance via TronGrid REST to avoid TronLink proxy issues
+      const allowanceHex = await callContractConstant({
+        ownerAddress: account,
+        contractAddress: CONTRACTS.STABLE,
+        functionSelector: 'allowance(address,address)',
+        parameter: abiEncodeAddress(account) + abiEncodeAddress(CONTRACTS.ROUTER),
+      });
+      const currentAllowance = allowanceHex ? BigInt('0x' + allowanceHex) : 0n;
 
       if (currentAllowance < amountUnits) {
         setStep('approving');
-        await usbtContract.approve(CONTRACTS.ROUTER, maxUint256).send({
-          from: account,
+
+        const approveParam =
+          abiEncodeAddress(CONTRACTS.ROUTER) + abiEncodeUint256(maxUint256);
+        const approveTx = await buildTriggerSmartContract({
+          ownerAddress: account,
+          contractAddress: CONTRACTS.STABLE,
+          functionSelector: 'approve(address,uint256)',
+          parameter: approveParam,
           feeLimit: FEE_LIMIT_SUN,
         });
+        const signedApproveTx = await window.tronWeb.trx.sign(approveTx);
+        await broadcastTransaction(signedApproveTx);
+
         addToast({
           type: 'info',
           title: 'USBT approved',
@@ -213,19 +217,25 @@ export default function SellPortal() {
 
       setStep('swapping');
 
-      // Step 2 — Swap via SunSwap router
-      const router = await window.tronWeb.contract(
-        ROUTER_ABI as unknown as object[],
-        CONTRACTS.ROUTER
-      );
+      const swapParam =
+        abiEncodeUint256(amountUnits) +
+        abiEncodeUint256(minOut) +
+        abiEncodeUint256(160) +
+        abiEncodeAddress(account) +
+        abiEncodeUint256(deadline) +
+        abiEncodeUint256(path.length) +
+        path.map(abiEncodeAddress).join('');
 
-      // Use pre-computed values (minOut, deadline, path, amountUnits defined above)
-      const result = await router
-        .swapExactTokensForTokens(amountUnits, minOut, path, account, deadline)
-        .send({ from: account, feeLimit: FEE_LIMIT_SUN });
-
-      const hash: string =
-        result?.txid ?? result?.transaction?.txID ?? '';
+      const swapTx = await buildTriggerSmartContract({
+        ownerAddress: account,
+        contractAddress: CONTRACTS.ROUTER,
+        functionSelector: 'swapExactTokensForTokens(uint256,uint256,address[],address,uint256)',
+        parameter: swapParam,
+        feeLimit: FEE_LIMIT_SUN,
+      });
+      const signedSwapTx = await window.tronWeb.trx.sign(swapTx);
+      const hash: string = (signedSwapTx as { txID?: string }).txID ?? '';
+      await broadcastTransaction(signedSwapTx);
 
       setTxid(hash);
       setStep('success');
@@ -270,256 +280,299 @@ export default function SellPortal() {
 
   return (
     <div className="w-full max-w-md mx-auto">
-      {/* Outer bezel */}
-      <div className="bezel-outer">
-        <div
-          className="rounded-[calc(1.5rem-1px)] p-6"
-          style={{
-            background: 'var(--bg-surface)',
-            boxShadow:
-              'inset 0 1px 0 rgba(255,255,255,0.8), 0 32px 80px rgba(0,0,0,0.12)',
-          }}
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400 dark:text-[#4a4a6a] mb-1">
-                Redeem
-              </p>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">Sell USBT</h2>
-            </div>
-            <div className="flex items-center gap-3">
-              {price !== null && (
-                <div className="text-right">
-                  <p className="text-[10px] text-slate-400 dark:text-[#4a4a6a] uppercase tracking-wide mb-0.5">
-                    Pool rate
-                  </p>
-                  <p className="num text-sm font-bold text-cyan-600 dark:text-cyan-400">
-                    ${price.toFixed(4)}
-                  </p>
-                </div>
-              )}
-              <a
-                href={SUNSWAP_PAIR_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-1.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.04] border border-black/[0.18] dark:border-white/[0.07] text-slate-400 dark:text-[#6b6b88] hover:text-slate-900 dark:hover:text-white transition-colors"
-                title="View pool on SunSwap"
-              >
-                <ArrowSquareOut size={13} />
-              </a>
-            </div>
+      {/* Card */}
+      <div
+        className="rounded-2xl p-5"
+        style={{
+          background: 'var(--bg-surface)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          boxShadow: '0 24px 64px rgba(0,0,0,0.4)',
+        }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-base font-bold text-white tracking-tight">Sell</h2>
+          <div className="flex items-center gap-3">
+            {price !== null && (
+              <span className="text-xs font-mono text-cyan-400">
+                Pool ${price.toFixed(4)}
+              </span>
+            )}
+            <a
+              href={SUNSWAP_PAIR_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-white/10 text-slate-400 hover:text-slate-200"
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}
+              title="View pool on SunSwap"
+            >
+              <ArrowSquareOut size={13} />
+            </a>
           </div>
+        </div>
 
-          <AnimatePresence mode="wait">
-            {step === 'success' ? (
-              <SuccessState txid={txid} onReset={reset} />
-            ) : step === 'error' ? (
-              <ErrorState message={errorMsg} onReset={reset} />
-            ) : (
-              <motion.div
-                key="form"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
+        <AnimatePresence mode="wait">
+          {step === 'success' ? (
+            <SuccessState txid={txid} onReset={reset} />
+          ) : step === 'error' ? (
+            <ErrorState message={errorMsg} onReset={reset} />
+          ) : (
+            <motion.div
+              key="form"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              {/* From — USBT */}
+              <div
+                className="rounded-xl p-4"
+                style={{
+                  background: 'rgba(255,255,255,0.03)',
+                  border: insufficient ? '1px solid rgba(239,68,68,0.3)' : '1px solid rgba(255,255,255,0.07)',
+                }}
               >
-                {/* You sell — USBT */}
-                <div className="mb-2">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-medium text-slate-500 dark:text-[#6b6b88]">You sell</label>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-medium text-slate-400">From</span>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="flex items-center gap-1 px-2 py-0.5 rounded-full"
+                      style={{ background: 'rgba(6,182,212,0.12)', border: '1px solid rgba(6,182,212,0.25)' }}
+                    >
+                      <ShieldCheck size={11} weight="fill" className="text-cyan-400" />
+                      <span className="text-[11px] font-semibold text-cyan-400">OK</span>
+                    </div>
+                    <a
+                      href={`https://tronscan.org/#/contract/${CONTRACTS.STABLE}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-slate-500 hover:text-slate-300 transition-colors"
+                    >
+                      <ArrowSquareOut size={13} />
+                    </a>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  {/* Token pill */}
+                  <div
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl flex-shrink-0"
+                    style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}
+                  >
+                    <img src="/usbt-logo.png" className="w-5 h-5 rounded-full" alt="USBT" />
+                    <span className="text-sm font-bold text-white">USBT</span>
+                  </div>
+                  {/* Amount input */}
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="Enter an Amount"
+                    value={usbtAmount}
+                    onChange={(e) => setUsbtAmount(e.target.value)}
+                    disabled={isLoading}
+                    className="flex-1 min-w-0 bg-transparent text-right text-xl font-bold text-white placeholder-slate-600 outline-none border-none"
+                    style={{ fontFamily: 'Geist Mono, monospace' }}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between mt-3">
+                  <span className="text-xs text-slate-500">
+                    Balance&nbsp;&nbsp;{usbtBalance !== null ? usbtBalance.toFixed(2) : '--'}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    {insufficient && (
+                      <span className="text-[10px] text-red-400 flex items-center gap-1">
+                        <Warning size={10} />Insufficient
+                      </span>
+                    )}
                     {usbtBalance !== null && (
                       <button
                         onClick={handleMaxUsbt}
-                        className="text-[10px] text-cyan-600/70 dark:text-cyan-400/70 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
+                        className="text-[10px] font-semibold text-cyan-500 hover:text-cyan-400 transition-colors px-1.5 py-0.5 rounded"
+                        style={{ background: 'rgba(6,182,212,0.1)' }}
                       >
-                        Balance: {usbtBalance.toFixed(2)} USBT · Max
+                        MAX
                       </button>
                     )}
                   </div>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      min="0"
-                      placeholder="0.00"
-                      value={usbtAmount}
-                      onChange={(e) => setUsbtAmount(e.target.value)}
-                      disabled={isLoading}
-                      className={`
-                        swap-input px-4 py-4 pr-20 text-xl font-bold
-                        placeholder-slate-300 dark:placeholder-[#3f3f52] rounded-2xl
-                        ${insufficient ? 'border-red-500/40 bg-red-500/5' : ''}
-                      `}
-                      style={{ fontFamily: 'Geist Mono, monospace' }}
-                    />
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-                      <div className="w-5 h-5 rounded-full bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center">
-                        <span className="text-[7px] font-black text-cyan-400">U</span>
-                      </div>
-                      <span className="text-xs font-bold text-slate-400 dark:text-[#8b8ba8]">USBT</span>
+                </div>
+              </div>
+
+              {/* Arrow */}
+              <div className="flex justify-center relative z-10 py-2">
+                <div
+                  className="w-9 h-9 rounded-full flex items-center justify-center"
+                  style={{
+                    background: 'var(--bg-surface)',
+                    border: '2px solid rgba(255,255,255,0.12)',
+                  }}
+                >
+                  <ArrowDown size={14} weight="bold" className="text-white" />
+                </div>
+              </div>
+
+              {/* To — USDT */}
+              <div
+                className="rounded-xl p-4 mb-4"
+                style={{
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.07)',
+                }}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-medium text-slate-400">To</span>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="flex items-center gap-1 px-2 py-0.5 rounded-full"
+                      style={{ background: 'rgba(6,182,212,0.12)', border: '1px solid rgba(6,182,212,0.25)' }}
+                    >
+                      <ShieldCheck size={11} weight="fill" className="text-cyan-400" />
+                      <span className="text-[11px] font-semibold text-cyan-400">OK</span>
                     </div>
-                  </div>
-                  {insufficient && (
-                    <p className="text-xs text-red-400 mt-1.5 flex items-center gap-1">
-                      <Warning size={11} />
-                      Insufficient USBT balance
-                    </p>
-                  )}
-                </div>
-
-                {/* Arrow */}
-                <div className="flex justify-center my-3">
-                  <div className="w-8 h-8 rounded-full bg-black/[0.04] dark:bg-white/[0.04] border border-black/[0.20] dark:border-white/[0.08] flex items-center justify-center">
-                    <ArrowDown size={14} className="text-slate-400 dark:text-[#6b6b88]" />
+                    <a
+                      href={`https://tronscan.org/#/contract/${CONTRACTS.COLLATERAL}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-slate-500 hover:text-slate-300 transition-colors"
+                    >
+                      <ArrowSquareOut size={13} />
+                    </a>
                   </div>
                 </div>
 
-                {/* You receive — USDT */}
-                <div className="mb-5">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-medium text-slate-500 dark:text-[#6b6b88]">You receive</label>
-                    {usdtBalance !== null && (
-                      <span className="text-[10px] text-slate-400 dark:text-[#4a4a6a]">
-                        Balance: {usdtBalance.toFixed(2)} USDT
+                <div className="flex items-center gap-3">
+                  {/* Token pill */}
+                  <div
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl flex-shrink-0"
+                    style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}
+                  >
+                    <img src="/usdt-logo.png" className="w-5 h-5 rounded-full" alt="USDT" />
+                    <span className="text-sm font-bold text-white">USDT</span>
+                  </div>
+                  {/* Amount output */}
+                  <div className="flex-1 text-right" style={{ fontFamily: 'Geist Mono, monospace' }}>
+                    {quoteLoading ? (
+                      <span className="skeleton inline-block w-24 h-7 rounded" />
+                    ) : (
+                      <span
+                        className={`text-xl font-bold ${
+                          usdtOut !== null ? 'text-white' : 'text-slate-600'
+                        }`}
+                      >
+                        {usdtOut !== null ? usdtOut.toFixed(4) : '0'}
                       </span>
                     )}
                   </div>
-                  <div
-                    className="swap-input px-4 py-4 pr-20 rounded-2xl flex items-center justify-between"
-                    style={{ minHeight: 62 }}
-                  >
-                    <span
-                      className={`text-xl font-bold transition-colors ${
-                        usdtOut !== null ? 'text-slate-900 dark:text-white' : 'text-slate-300 dark:text-[#3f3f52]'
-                      }`}
-                      style={{ fontFamily: 'Geist Mono, monospace' }}
-                    >
-                      {quoteLoading ? (
-                        <span className="skeleton inline-block w-20 h-6" />
-                      ) : usdtOut !== null ? (
-                        usdtOut.toFixed(4)
-                      ) : (
-                        '0.00'
-                      )}
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-5 h-5 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center">
-                        <span className="text-[8px] font-black text-green-400">T</span>
-                      </div>
-                      <span className="text-xs font-bold text-slate-400 dark:text-[#8b8ba8]">USDT</span>
-                    </div>
-                  </div>
                 </div>
 
-                {/* Details */}
-                {parsedUsbt > 0 && usdtOut !== null && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mb-5 p-3.5 rounded-xl bg-black/[0.03] dark:bg-white/[0.03] border border-black/[0.16] dark:border-white/[0.06] space-y-2"
-                  >
-                    <DetailRow
-                      label="Route"
-                      value="USBT → USDT (SunSwap v2)"
-                    />
-                    <DetailRow
-                      label="Min received"
-                      value={`${(usdtOut * (1 - slippageBps / 10000)).toFixed(4)} USDT`}
-                    />
-                    <DetailRow
-                      label="Slippage tolerance"
-                      value={`${slippageBps / 100}%`}
-                    />
-                    {priceImpact !== null && (
-                      <DetailRow
-                        label="Price impact"
-                        value={`~${priceImpact.toFixed(2)}%`}
-                        warn={highImpact}
-                      />
-                    )}
-                    <DetailRow label="Network fee" value="~1–5 TRX" />
-                  </motion.div>
-                )}
+                <div className="flex items-center justify-between mt-3">
+                  <span className="text-xs text-slate-500">
+                    Balance&nbsp;&nbsp;{usdtBalance !== null ? usdtBalance.toFixed(2) : '--'}
+                  </span>
+                  <span className="text-xs text-slate-600">--</span>
+                </div>
+              </div>
 
-                {/* High impact warning */}
-                {highImpact && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="mb-4 p-3 rounded-xl bg-amber-500/[0.07] border border-amber-500/20 flex items-start gap-2.5"
-                  >
-                    <Warning size={15} className="text-amber-400 flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-amber-300 leading-relaxed">
-                      High price impact ({priceImpact!.toFixed(1)}%). Consider splitting the trade
-                      into smaller amounts.
-                    </p>
-                  </motion.div>
-                )}
+              {/* Details */}
+              {parsedUsbt > 0 && usdtOut !== null && (
+                <motion.div
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-4 px-1 space-y-1.5"
+                >
+                  <DetailRow label="Route" value="USBT → USDT (SunSwap v2)" />
+                  <DetailRow
+                    label="Min received"
+                    value={`${(usdtOut * (1 - slippageBps / 10000)).toFixed(4)} USDT`}
+                  />
+                  <DetailRow label="Slippage tolerance" value={`${slippageBps / 100}%`} />
+                  {priceImpact !== null && (
+                    <DetailRow
+                      label="Price impact"
+                      value={`~${priceImpact.toFixed(2)}%`}
+                      warn={highImpact}
+                    />
+                  )}
+                  <DetailRow label="Network fee" value="~1–5 TRX" />
+                </motion.div>
+              )}
 
-                {/* Approval/swap status */}
-                {(step === 'approving' || step === 'swapping') && (
-                  <div className="mb-4 flex items-center gap-2.5 p-3 rounded-xl bg-cyan-500/[0.07] border border-cyan-500/20">
-                    <span className="w-4 h-4 rounded-full border-[1.5px] border-cyan-400 border-t-transparent animate-spin flex-shrink-0" />
-                    <span className="text-sm text-cyan-600 dark:text-cyan-300">
-                      {step === 'approving'
-                        ? 'Approving USBT… confirm in wallet'
-                        : 'Swapping via SunSwap… confirm in wallet'}
-                    </span>
-                  </div>
-                )}
+              {/* High impact warning */}
+              {highImpact && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="mb-4 p-3 rounded-xl bg-amber-500/[0.07] border border-amber-500/20 flex items-start gap-2.5"
+                >
+                  <Warning size={15} className="text-amber-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-300 leading-relaxed">
+                    High price impact ({priceImpact!.toFixed(1)}%). Consider splitting the trade into smaller amounts.
+                  </p>
+                </motion.div>
+              )}
 
-                {/* Info note */}
-                <div className="mb-5 flex items-start gap-2 text-[11px] text-slate-400 dark:text-[#4a4a6a]">
-                  <Info size={12} className="flex-shrink-0 mt-0.5" />
-                  <span>
-                    Sale is routed through the SunSwap v2 pool. Output depends on current
-                    pool reserves. Review the{' '}
-                    <a
-                      href={SUNSWAP_PAIR_URL}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-cyan-500/60 hover:text-cyan-400 underline underline-offset-2 transition-colors"
-                    >
-                      pair on SunSwap
-                    </a>{' '}
-                    before transacting.
+              {/* Status */}
+              {(step === 'approving' || step === 'swapping') && (
+                <div className="mb-4 flex items-center gap-2.5 p-3 rounded-xl bg-cyan-500/[0.07] border border-cyan-500/20">
+                  <span className="w-4 h-4 rounded-full border-[1.5px] border-cyan-400 border-t-transparent animate-spin flex-shrink-0" />
+                  <span className="text-sm text-cyan-300">
+                    {step === 'approving'
+                      ? 'Approving USBT… confirm in wallet'
+                      : 'Swapping via SunSwap… confirm in wallet'}
                   </span>
                 </div>
+              )}
 
-                {/* CTA */}
-                {!isConnected ? (
-                  <Button
-                    variant="primary"
-                    size="lg"
-                    fullWidth
-                    loading={isConnecting}
-                    onClick={connect}
+              {/* Info note */}
+              <div className="mb-5 flex items-start gap-2 text-[11px] text-slate-500">
+                <Info size={12} className="flex-shrink-0 mt-0.5" />
+                <span>
+                  Sale routes through SunSwap v2. Output depends on pool reserves.{' '}
+                  <a
+                    href={SUNSWAP_PAIR_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-cyan-500/60 hover:text-cyan-400 underline underline-offset-2 transition-colors"
                   >
-                    Connect Wallet
-                  </Button>
-                ) : (
-                  <Button
-                    variant="primary"
-                    size="lg"
-                    fullWidth
-                    loading={isLoading}
-                    disabled={!canSubmit}
-                    onClick={handleSell}
-                  >
-                    {step === 'approving'
-                      ? 'Approving USBT…'
-                      : step === 'swapping'
-                      ? 'Swapping…'
-                      : `Sell USBT${parsedUsbt > 0 ? ` · ${parsedUsbt} USBT` : ''}`}
-                  </Button>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+                    View pair
+                  </a>
+                  .
+                </span>
+              </div>
+
+              {/* CTA */}
+              {!isConnected ? (
+                <Button
+                  variant="primary"
+                  size="lg"
+                  fullWidth
+                  loading={isConnecting}
+                  onClick={connect}
+                >
+                  Connect Wallet
+                </Button>
+              ) : (
+                <Button
+                  variant="primary"
+                  size="lg"
+                  fullWidth
+                  loading={isLoading}
+                  disabled={!canSubmit}
+                  onClick={handleSell}
+                >
+                  {step === 'approving'
+                    ? 'Approving USBT…'
+                    : step === 'swapping'
+                    ? 'Swapping…'
+                    : `Sell USBT${parsedUsbt > 0 ? ` · ${parsedUsbt} USBT` : ''}`}
+                </Button>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      <p className="text-xs text-slate-400 dark:text-[#3f3f52] text-center mt-4 leading-relaxed px-2">
+      <p className="text-xs text-slate-600 text-center mt-4 leading-relaxed px-2">
         Sale routes through SunSwap v2. Output determined by on-chain pool reserves.
         Transactions are irreversible.
       </p>
@@ -540,8 +593,8 @@ function DetailRow({
 }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <span className="text-xs text-slate-500 dark:text-[#6b6b88]">{label}</span>
-      <span className={`text-xs font-medium ${warn ? 'text-amber-400' : 'text-slate-900 dark:text-white'}`}>
+      <span className="text-xs text-slate-500">{label}</span>
+      <span className={`text-xs font-medium ${warn ? 'text-amber-400' : 'text-slate-300'}`}>
         {value}
       </span>
     </div>
@@ -565,8 +618,8 @@ function SuccessState({
       <div className="w-16 h-16 rounded-full bg-emerald-500/12 border border-emerald-500/25 flex items-center justify-center mb-5">
         <CheckCircle size={32} weight="fill" className="text-emerald-400" />
       </div>
-      <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Sale complete</h3>
-      <p className="text-sm text-slate-500 dark:text-[#8b8ba8] mb-5">
+      <h3 className="text-xl font-bold text-white mb-2">Sale complete</h3>
+      <p className="text-sm text-slate-400 mb-5">
         USDT has been sent to your wallet.
       </p>
       {txid && (
@@ -604,7 +657,7 @@ function ErrorState({
       <div className="w-16 h-16 rounded-full bg-red-500/12 border border-red-500/25 flex items-center justify-center mb-5">
         <X size={28} className="text-red-400" />
       </div>
-      <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Transaction failed</h3>
+      <h3 className="text-xl font-bold text-white mb-2">Transaction failed</h3>
       {message && (
         <p className="text-sm text-red-400 mb-5 max-w-[280px] leading-relaxed">{message}</p>
       )}

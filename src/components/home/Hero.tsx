@@ -118,12 +118,12 @@ export default function Hero() {
   const isDark = theme === 'dark';
 
   return (
-    <section className="relative min-h-[100dvh] flex flex-col overflow-hidden">
-      <div className="flex-1 flex items-center max-w-7xl mx-auto w-full px-6 pt-32 pb-16">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-8 items-center w-full">
+    <section className="relative flex flex-col overflow-hidden">
+      <div className="flex-1 flex items-start max-w-7xl mx-auto w-full px-6 pt-14 pb-24">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-8 items-start w-full">
 
           {/* Left — content */}
-          <div className="order-2 lg:order-1">
+          <div className="order-2 lg:order-1 text-center lg:text-left">
             {/* Eyebrow */}
             <motion.div
               initial={{ opacity: 0, y: 16 }}
@@ -163,7 +163,7 @@ export default function Hero() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.26, type: 'spring', stiffness: 240, damping: 24 }}
-              className="text-lg text-slate-500 dark:text-[#8b8ba8] leading-relaxed max-w-[500px] mb-10"
+              className="text-lg text-slate-500 dark:text-[#8b8ba8] leading-relaxed max-w-[500px] mb-10 mx-auto lg:mx-0"
             >
               Mint, hold, and redeem USBT on the Tron network.
               Backed by USDT collateral, redeemable through SunSwap liquidity.
@@ -174,7 +174,7 @@ export default function Hero() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.34, type: 'spring', stiffness: 240, damping: 24 }}
-              className="flex flex-wrap items-center gap-3"
+              className="flex flex-wrap items-center gap-3 justify-center lg:justify-start"
             >
               <Link to="/buy">
                 <Button
@@ -197,7 +197,7 @@ export default function Hero() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5 }}
-              className="flex flex-wrap items-center gap-5 mt-10 pt-8 border-t border-black/[0.16] dark:border-white/[0.06]"
+              className="flex flex-wrap items-center gap-5 mt-10 pt-8 border-t border-black/[0.16] dark:border-white/[0.06] justify-center lg:justify-start"
             >
               <TrustPill icon={<ShieldCheck size={14} className="text-emerald-500 dark:text-emerald-400" />} text="On-chain verified" />
               <TrustPill icon={<ArrowsLeftRight size={14} className="text-cyan-600 dark:text-cyan-400" />} text="SunSwap liquidity" />

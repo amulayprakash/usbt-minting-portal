@@ -72,6 +72,26 @@ export const TRC20_ABI = [
 export const STABLE_ABI = [
   {
     constant: false,
+    inputs: [
+      { name: '_spender', type: 'address' },
+      { name: '_value', type: 'uint256' },
+    ],
+    name: 'approve',
+    outputs: [{ name: '', type: 'bool' }],
+    type: 'Function',
+  },
+  {
+    constant: true,
+    inputs: [
+      { name: '_owner', type: 'address' },
+      { name: '_spender', type: 'address' },
+    ],
+    name: 'allowance',
+    outputs: [{ name: '', type: 'uint256' }],
+    type: 'Function',
+  },
+  {
+    constant: false,
     inputs: [{ name: 'usdtAmount', type: 'uint256' }],
     name: 'buyTokens',
     outputs: [{ name: '', type: 'uint256' }],

@@ -78,7 +78,7 @@ export default function Roadmap() {
         initial={{ opacity: 0, y: 24 }}
         animate={inView ? { opacity: 1, y: 0 } : {}}
         transition={{ type: 'spring', stiffness: 260, damping: 26 }}
-        className="mb-14 max-w-xl"
+        className="mb-14 max-w-xl text-center md:text-left mx-auto md:mx-0"
       >
         <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-slate-400 dark:text-[#4a4a6a] mb-3">
           Roadmap
@@ -115,13 +115,13 @@ export default function Roadmap() {
               }}
             >
               {/* Phase number */}
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 dark:text-[#4a4a6a] mb-3">
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 dark:text-[#4a4a6a] mb-3 text-center md:text-left">
                 {phase.phase}
               </p>
 
               {/* Title + badge */}
               <div className="flex items-center justify-between gap-3 mb-5">
-                <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
+                <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight text-center md:text-left flex-1">
                   {phase.title}
                 </h3>
                 <span

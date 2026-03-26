@@ -61,7 +61,7 @@ export default function Features() {
         initial={{ opacity: 0, y: 24 }}
         animate={inView ? { opacity: 1, y: 0 } : {}}
         transition={{ type: 'spring', stiffness: 260, damping: 26 }}
-        className="mb-14 max-w-xl"
+        className="mb-14 max-w-xl text-center md:text-left mx-auto md:mx-0"
       >
         <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-slate-400 dark:text-[#4a4a6a] mb-3">
           Why USBT
@@ -117,7 +117,7 @@ export default function Features() {
                   {/* Icon */}
                   <div
                     className={`
-                      w-10 h-10 rounded-xl flex items-center justify-center mb-5 flex-shrink-0
+                      w-10 h-10 rounded-xl flex items-center justify-center mb-5 flex-shrink-0 mx-auto md:mx-0
                       ${feat.accent
                         ? 'bg-cyan-500/15 border border-cyan-500/25'
                         : 'bg-black/[0.05] dark:bg-white/[0.05] border border-black/[0.08] dark:border-white/[0.08]'
@@ -131,16 +131,16 @@ export default function Features() {
                     />
                   </div>
 
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2.5 tracking-tight">
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2.5 tracking-tight text-center md:text-left">
                     {feat.title}
                   </h3>
-                  <p className="text-sm text-slate-500 dark:text-[#8b8ba8] leading-relaxed flex-1">
+                  <p className="text-sm text-slate-500 dark:text-[#8b8ba8] leading-relaxed flex-1 text-center md:text-left">
                     {feat.body}
                   </p>
 
                   {feat.accent && (
                     <div className="mt-5 pt-5 border-t border-cyan-500/15">
-                      <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-600/60 dark:text-cyan-500/60">
+                      <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-600/60 dark:text-cyan-500/60 block text-center md:text-left">
                         Function: buyTokens · 0x3610724e
                       </span>
                     </div>
