@@ -15,7 +15,7 @@ export default function Logo({ size = 'md', showWordmark = true, className }: Lo
     <Link
       to="/"
       className={clsx('inline-flex items-center gap-2.5 group focus:outline-none', className)}
-      aria-label="USBT Portal home"
+      aria-label="USBT Exchange home"
     >
       <div
         className="relative flex-shrink-0 transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:rotate-[15deg]"

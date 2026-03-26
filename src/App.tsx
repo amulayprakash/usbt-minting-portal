@@ -41,7 +41,7 @@ async function getWCAdapter(): Promise<WalletConnectAdapter> {
       options: {
         projectId: import.meta.env.VITE_WALLETCONNECT_PROJECT_ID as string,
         metadata: {
-          name: 'USBT Portal',
+          name: 'USBT Exchange',
           description: 'Mint and trade USBT on Tron Mainnet',
           url: window.location.origin,
           icons: [`${window.location.origin}/favicon.svg`],
