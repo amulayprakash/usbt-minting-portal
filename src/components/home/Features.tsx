@@ -13,39 +13,39 @@ import {
 const FEATURES = [
   {
     icon: Lightning,
-    title: 'Instant Minting',
-    body: 'Send USDT, receive USBT immediately. The buyTokens function settles on-chain within seconds on Tron mainnet.',
+    title: 'Instant Issuance',
+    body: 'Deposit collateral, receive USBT immediately. Issuance settles on-chain in seconds — no queues, no intermediaries.',
     accent: true,
     size: 'large',
   },
   {
     icon: ArrowsLeftRight,
-    title: 'SunSwap Liquidity',
-    body: 'USBT is tradeable on SunSwap v2. Sell into deep liquidity at any time without waiting for manual redemption.',
+    title: 'Deep Liquidity Access',
+    body: 'USBT is redeemable into deep on-chain liquidity at any time. Exit whenever you need to, at market rate, with minimal slippage.',
     size: 'normal',
   },
   {
     icon: ShieldCheck,
-    title: 'USDT Backed',
-    body: 'Collateral is held on-chain. Every USBT in circulation is traceable to its underlying USDT deposit.',
+    title: 'Fully Collateralized',
+    body: 'Every USBT in circulation maps 1:1 to USDT held on-chain. The reserve is transparent and verifiable at any time.',
     size: 'normal',
   },
   {
     icon: Wallet,
-    title: 'WalletConnect Ready',
-    body: 'Connect with TronLink, TronLink Mobile, or any compatible Tron wallet. Mobile-first flows built in.',
+    title: 'Wallet-Agnostic',
+    body: 'Connect with any compatible Web3 wallet. Desktop and mobile flows are fully supported, with more wallet adapters being added.',
     size: 'normal',
   },
   {
     icon: Drop,
-    title: 'Deep Pool',
-    body: 'Pair liquidity on SunSwap provides real market depth for both buying and selling with minimal slippage.',
+    title: 'Protocol-Grade Depth',
+    body: 'Paired liquidity provides real market depth for both issuance and redemption, keeping slippage minimal at scale.',
     size: 'normal',
   },
   {
     icon: FileCode,
-    title: 'Transparent Contract',
-    body: 'Fully verified and open source on TronScan. No hidden fees, no paused withdrawals, no mystery logic.',
+    title: 'Verifiable Contract',
+    body: 'Fully open-source and publicly verified. No hidden fees, no admin backdoors, no logic that can change after deployment.',
     size: 'wide',
   },
 ];
@@ -70,7 +70,7 @@ export default function Features() {
           Built for clarity, not complexity.
         </h2>
         <p className="mt-4 text-slate-500 dark:text-[#8b8ba8] leading-relaxed">
-          A minimal, verifiable token designed to do one thing well: hold value on Tron.
+          A minimal, verifiable liquidity token engineered to do one thing well: preserve and transfer value across chains.
         </p>
       </motion.div>
 
@@ -141,7 +141,7 @@ export default function Features() {
                   {feat.accent && (
                     <div className="mt-5 pt-5 border-t border-cyan-500/15">
                       <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-600/60 dark:text-cyan-500/60 block text-center md:text-left">
-                        Function: buyTokens · 0x3610724e
+                        Contract · Open Source · Publicly Verified
                       </span>
                     </div>
                   )}

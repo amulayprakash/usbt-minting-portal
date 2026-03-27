@@ -28,19 +28,19 @@ const STATS: StatItem[] = [
     label: 'Pool Liquidity',
     prefix: '$',
     value: '—',
-    sub: 'SunSwap v2',
+    sub: 'On-chain depth',
     live: true,
   },
   {
     label: 'Network',
-    value: 'Tron',
-    suffix: ' Mainnet',
-    sub: 'TRC-20 Standard',
+    value: 'Multi',
+    suffix: '-Chain',
+    sub: 'Leading ecosystems',
   },
   {
     label: 'Contract',
     value: 'Verified',
-    sub: 'Open source on TronScan',
+    sub: 'Open source · Auditable',
   },
 ];
 
@@ -64,18 +64,18 @@ function AnimatedNumber({
 
 function StatsTicker() {
   const items = [
-    'USBT · TRC-20',
-    'Backed by USDT',
-    'SunSwap Liquidity',
-    'Tron Mainnet',
+    'USBT · Multi-Chain',
+    'Collateral-Backed',
+    'Deep Liquidity',
+    'On-Chain Verified',
     'Open Source',
-    'Non-custodial',
-    'USBT · TRC-20',
-    'Backed by USDT',
-    'SunSwap Liquidity',
-    'Tron Mainnet',
+    'Non-Custodial',
+    'USBT · Multi-Chain',
+    'Collateral-Backed',
+    'Deep Liquidity',
+    'On-Chain Verified',
     'Open Source',
-    'Non-custodial',
+    'Non-Custodial',
   ];
 
   return (
@@ -111,11 +111,11 @@ export default function TokenStats() {
           className="mb-12"
         >
           <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-slate-400 dark:text-[#4a4a6a] mb-3 text-center sm:text-left">
-            Token Overview
+            Live Data
           </p>
           <div className="flex flex-col sm:flex-row sm:items-end gap-4 justify-between items-center sm:items-end">
             <h2 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900 dark:text-white leading-tight text-center sm:text-left">
-              Live network data
+              Real-time protocol metrics
             </h2>
             <a
               href={SUNSWAP_PAIR_URL}
@@ -123,7 +123,7 @@ export default function TokenStats() {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 text-sm text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 transition-colors"
             >
-              View on SunSwap
+              View liquidity pool
               <ArrowSquareOut size={13} />
             </a>
           </div>
@@ -193,7 +193,7 @@ export default function TokenStats() {
           className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3"
         >
           <ContractRow label="USBT Contract" address="TA22JDzS7HDQPYM38Y4Wsy9N3hLRBSUkGv" />
-          <ContractRow label="USDT Collateral" address="TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t" />
+          <ContractRow label="Collateral Reserve" address="TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t" />
         </motion.div>
       </div>
     </section>

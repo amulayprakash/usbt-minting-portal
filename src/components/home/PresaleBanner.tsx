@@ -38,7 +38,7 @@ function CountdownUnit({ value, label }: { value: number; label: string }) {
             : '1px solid rgba(6,182,212,0.25)',
           boxShadow: isDark
             ? '0 0 18px rgba(6,182,212,0.20), inset 0 1px 0 rgba(255,255,255,0.08)'
-            : '0 4px 14px rgba(6,182,212,0.12), inset 0 1px 0 rgba(255,255,255,0.9)',
+            : '0 2px 8px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9)',
         }}
       >
         {/* Center divider */}
@@ -93,11 +93,13 @@ export default function PresaleBanner() {
             : '0 0 0 1px rgba(6,182,212,0.06), 0 8px 32px rgba(6,182,212,0.14), 0 2px 8px rgba(0,0,0,0.08)',
         }}
       >
-        {/* Top glow bar */}
+        {/* Top accent bar */}
         <div
           className="absolute top-0 inset-x-0 h-[2px] pointer-events-none"
           style={{
-            background: 'linear-gradient(90deg, transparent 0%, rgba(6,182,212,0.5) 20%, rgba(34,211,238,0.9) 50%, rgba(6,182,212,0.5) 80%, transparent 100%)',
+            background: isDark
+              ? 'linear-gradient(90deg, transparent 0%, rgba(6,182,212,0.5) 20%, rgba(34,211,238,0.9) 50%, rgba(6,182,212,0.5) 80%, transparent 100%)'
+              : 'linear-gradient(90deg, transparent, rgba(6,182,212,0.45), transparent)',
           }}
         />
 
@@ -137,10 +139,10 @@ export default function PresaleBanner() {
             <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-400" />
           </span>
           <span
-            className="text-[16px] font-black uppercase tracking-[0.28em] text-cyan-400"
-            style={{ textShadow: '0 0 16px rgba(6,182,212,0.8)' }}
+            className={`text-[16px] font-black uppercase tracking-[0.28em] ${isDark ? 'text-cyan-400' : 'text-sky-700'}`}
+            style={{ textShadow: isDark ? '0 0 16px rgba(6,182,212,0.8)' : undefined }}
           >
-            Presale Live
+            Early Access Live
           </span>
           <span className="relative flex h-3 w-3 flex-shrink-0">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
@@ -165,15 +167,17 @@ export default function PresaleBanner() {
                     ? 'linear-gradient(135deg, rgba(6,182,212,0.28) 0%, rgba(6,182,212,0.12) 100%)'
                     : 'linear-gradient(135deg, rgba(6,182,212,0.22) 0%, rgba(6,182,212,0.08) 100%)',
                   border: '1.5px solid rgba(6,182,212,0.60)',
-                  boxShadow: '0 0 36px rgba(6,182,212,0.35), 0 0 12px rgba(6,182,212,0.20), inset 0 1px 0 rgba(6,182,212,0.25)',
+                  boxShadow: isDark
+                    ? '0 0 36px rgba(6,182,212,0.35), 0 0 12px rgba(6,182,212,0.20), inset 0 1px 0 rgba(6,182,212,0.25)'
+                    : '0 2px 12px rgba(6,182,212,0.10), inset 0 1px 0 rgba(255,255,255,0.9)',
                 }}
               >
                 <span className="relative flex h-3 w-3">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
                   <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-400" />
                 </span>
-                <span className="text-[15px] font-extrabold uppercase tracking-[0.22em] text-cyan-400 whitespace-nowrap drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]">
-                  Presale Live
+                <span className={`text-[15px] font-extrabold uppercase tracking-[0.22em] whitespace-nowrap ${isDark ? 'text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]' : 'text-sky-700'}`}>
+                  Early Access Live
                 </span>
               </motion.div>
 
@@ -189,17 +193,17 @@ export default function PresaleBanner() {
                 <div className="flex items-center gap-2.5 justify-center sm:justify-start mb-2">
                   <Fire size={18} weight="fill" className="text-amber-400 flex-shrink-0" />
                   <h2 className="text-lg md:text-xl font-extrabold text-slate-900 dark:text-white tracking-tight text-center sm:text-left">
-                    USBT Presale is now live — buy before the round is over
+                    USBT Early Access — lock in your position before this round closes.
                   </h2>
                 </div>
                 <p className="text-sm md:text-[15px] text-slate-500 dark:text-[#8b8ba8] max-w-[500px] leading-relaxed text-center sm:text-left mx-auto sm:mx-0">
-                  Early buyers lock in the best rate. Once this round closes,{' '}
-                  <span className="text-slate-800 dark:text-slate-200 font-semibold">pricing moves up permanently</span>.
+                  Early participants secure the best entry rate. Once this round closes,{' '}
+                  <span className="text-slate-800 dark:text-slate-200 font-semibold">pricing adjusts permanently</span>.
                 </p>
                 <div className="flex items-center gap-2 mt-3 justify-center sm:justify-start">
                   <Warning size={14} weight="fill" className="text-amber-400 flex-shrink-0" />
                   <span className="text-[13px] font-semibold text-amber-500 dark:text-amber-400">
-                    Buy fast — presale slots are filling up. Don't miss your window.
+                    Limited allocation remaining in this round.
                   </span>
                 </div>
               </motion.div>
@@ -216,7 +220,7 @@ export default function PresaleBanner() {
                 className="text-[11px] font-bold uppercase tracking-[0.22em]"
                 style={{ color: isDark ? 'rgba(6,182,212,0.7)' : 'rgba(8,145,178,0.8)' }}
               >
-                Presale ends in
+                Round closes in
               </span>
               <div className="flex items-end gap-2">
                 <CountdownUnit value={timeLeft.days} label="Days" />
@@ -242,22 +246,24 @@ export default function PresaleBanner() {
                   size="lg"
                   trailingIcon={<ArrowRight size={12} weight="bold" />}
                 >
-                  Buy USBT
+                  Get USBT
                 </Button>
               </Link>
               <span className="text-[11px] font-medium text-slate-400 dark:text-[#4a4a6a]">
-                Secure · On-chain · Instant
+                Secure · On-chain · Non-custodial
               </span>
             </motion.div>
 
           </div>
         </div>
 
-        {/* Bottom glow bar */}
+        {/* Bottom accent bar */}
         <div
           className="absolute bottom-0 inset-x-0 h-[1px] pointer-events-none"
           style={{
-            background: 'linear-gradient(90deg, transparent 0%, rgba(6,182,212,0.30) 30%, rgba(6,182,212,0.45) 50%, rgba(6,182,212,0.30) 70%, transparent 100%)',
+            background: isDark
+              ? 'linear-gradient(90deg, transparent 0%, rgba(6,182,212,0.30) 30%, rgba(6,182,212,0.45) 50%, rgba(6,182,212,0.30) 70%, transparent 100%)'
+              : 'linear-gradient(90deg, transparent, rgba(6,182,212,0.3), transparent)',
           }}
         />
       </motion.section>

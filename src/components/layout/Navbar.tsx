@@ -9,9 +9,9 @@ import WalletButton from '../ui/WalletButton';
 import { useTheme } from '../../hooks/useTheme';
 
 const NAV_LINKS = [
-  { to: '/', label: 'Home' },
-  { to: '/buy', label: 'Buy USBT' },
-  { to: '/sell', label: 'Sell USBT' },
+  { to: '/', label: 'Overview' },
+  { to: '/buy', label: 'Get USBT' },
+  { to: '/sell', label: 'Redeem' },
 ];
 
 export default function Navbar() {

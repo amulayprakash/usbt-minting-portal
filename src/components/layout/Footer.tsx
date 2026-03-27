@@ -10,12 +10,12 @@ import {
 const LINKS_CONTRACT = [
   { label: 'USBT Contract', href: TRONSCAN_CONTRACT_URL, external: true },
   { label: 'Liquidity Pool', href: SUNSWAP_PAIR_URL, external: true },
-  { label: 'TronScan', href: `https://tronscan.org/#/address/${CONTRACTS.STABLE}`, external: true },
+  { label: 'Contract Explorer', href: `https://tronscan.org/#/address/${CONTRACTS.STABLE}`, external: true },
 ];
 
 const LINKS_PORTAL = [
-  { label: 'Buy USBT', to: '/buy' },
-  { label: 'Sell USBT', to: '/sell' },
+  { label: 'Get USBT', to: '/buy' },
+  { label: 'Redeem', to: '/sell' },
   { label: 'Home', to: '/' },
 ];
 
@@ -37,13 +37,13 @@ export default function Footer() {
           <div className="md:col-span-1 flex flex-col items-center md:items-start">
             <Logo size="md" className="mb-4" />
             <p className="text-sm text-slate-500 dark:text-[#6b6b88] leading-relaxed max-w-[200px]">
-              A transparent, on-chain stable token built on Tron mainnet.
+              A transparent, on-chain liquidity token built for major blockchain networks.
             </p>
             <div className="mt-5 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400 relative">
                 <span className="absolute inset-0 rounded-full bg-emerald-400 animate-pulse-ring opacity-60" />
               </span>
-              <span className="text-xs text-slate-400 dark:text-[#6b6b88]">Live on Tron Mainnet</span>
+              <span className="text-xs text-slate-400 dark:text-[#6b6b88]">Protocol Live</span>
             </div>
           </div>
 
@@ -115,15 +115,13 @@ export default function Footer() {
           </p>
           <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
             <AddressChip label="Contract" address={CONTRACTS.STABLE} />
-            <AddressChip label="Pair" address={CONTRACTS.PAIR} />
+            <AddressChip label="Collateral Reserve" address={CONTRACTS.COLLATERAL} />
           </div>
         </div>
 
         {/* Disclaimer */}
         <p className="mt-4 text-[11px] text-slate-400 dark:text-[#3f3f52] leading-relaxed max-w-2xl text-center sm:text-left mx-auto sm:mx-0">
-          USBT is an experimental token on the Tron network. Interact only with assets you can afford to lose.
-          Always verify contract addresses on TronScan before transacting. This interface does not constitute
-          financial advice.
+          USBT is an on-chain liquidity token. Digital assets carry inherent risk — only interact with assets you are prepared to lose. Always verify contract addresses displayed in this portal before transacting. This interface does not constitute financial or investment advice. Availability may be restricted in certain jurisdictions.
         </p>
       </div>
     </footer>

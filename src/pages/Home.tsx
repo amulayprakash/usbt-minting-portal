@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import Hero from '../components/home/Hero';
 import PresaleBanner from '../components/home/PresaleBanner';
+import SupportedChains from '../components/home/SupportedChains';
 import TokenStats from '../components/home/TokenStats';
 import Features from '../components/home/Features';
 import Security from '../components/home/Security';
@@ -17,6 +18,7 @@ export default function Home() {
     >
       <Hero />
       <PresaleBanner />
+      <SupportedChains />
       <TokenStats />
       <Features />
       <Security />

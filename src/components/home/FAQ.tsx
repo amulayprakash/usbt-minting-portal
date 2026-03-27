@@ -6,36 +6,32 @@ import { Plus, Minus } from '@phosphor-icons/react';
 const FAQS = [
   {
     q: 'What is USBT?',
-    a: 'USBT is a TRC-20 token on the Tron mainnet. It is designed to be purchased with USDT and redeemable via the SunSwap liquidity pool. The token contract is publicly verified on TronScan.',
+    a: 'USBT is a collateral-backed liquidity token. It is issued on-chain against USDT collateral and is designed to hold a stable unit of account while giving holders direct access to on-chain liquidity. The contract is publicly verified and open source.',
   },
   {
-    q: 'How do I buy USBT?',
-    a: 'Connect your TronLink wallet, navigate to the Buy page, enter the amount of USDT you want to spend, approve the USDT transfer, then confirm the buyTokens transaction. USBT will appear in your wallet after the transaction confirms.',
+    q: 'How do I get USBT?',
+    a: 'Connect a compatible Web3 wallet, navigate to the Get USBT page, enter the amount of USDT you want to deposit, approve the transfer, and confirm the issuance transaction. USBT will appear in your wallet once the transaction confirms on-chain.',
   },
   {
-    q: 'How do I sell USBT?',
-    a: 'On the Sell page, enter the amount of USBT you want to sell. The portal routes the sale through the SunSwap v2 liquidity pool (pair: TEpLryVMYSALJkGJ3n8urG7iWzHDeLyrBS), swapping your USBT for USDT.',
+    q: 'How do I redeem USBT?',
+    a: 'On the Redeem page, enter the amount of USBT you want to exit. The portal routes the redemption through the on-chain liquidity pair, returning USDT to your wallet at the current pool rate.',
   },
   {
     q: 'Which wallets are supported?',
-    a: 'TronLink (browser extension) and TronLink Mobile are fully supported. WalletConnect support is in development. You need a Tron mainnet wallet with TRX for gas fees.',
+    a: "Any compatible Web3 wallet can connect to this portal. Desktop extensions and mobile wallets are both supported. You will need a small amount of the network's native token to cover gas fees.",
   },
   {
     q: 'What are the fees?',
-    a: 'Buying USBT charges only Tron network energy/bandwidth fees (paid in TRX). Selling via SunSwap incurs the standard 0.3% SunSwap trading fee. There is no additional portal fee.',
+    a: 'Getting USBT incurs only standard network gas fees. Redeeming via the liquidity pool incurs the standard DEX trading fee (0.3%). There is no additional portal fee layered on top.',
   },
   {
     q: 'Is the contract audited?',
-    a: 'The contract is published and verified on TronScan. You can review every line of the source code at tronscan.org. Always verify the contract address matches TA22JDzS7HDQPYM38Y4Wsy9N3hLRBSUkGv before interacting.',
+    a: 'The contract is published and publicly verified. You can review every line of the source code on-chain at any time. Always confirm the contract address matches the one displayed in this portal before interacting.',
   },
   {
-    q: 'What happens if there is low liquidity in the pool?',
-    a: 'Selling through SunSwap with low pool liquidity results in higher slippage. The portal shows you the estimated output and warns when slippage exceeds 1%. You can always review the pair on sun.io before transacting.',
-  },
-  {
-    q: 'What network do I need?',
-    a: 'Tron Mainnet only. Ensure your wallet is set to Tron mainnet before connecting. The portal will display a warning if the wrong network is detected.',
-  },
+    q: 'What happens if liquidity in the pool is low?',
+    a: 'Redeeming with low pool liquidity results in higher slippage. The portal displays your estimated output and flags a warning when slippage exceeds 1%. We recommend reviewing pool depth before large redemptions.',
+  }
 ];
 
 export default function FAQ() {

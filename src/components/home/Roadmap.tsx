@@ -16,10 +16,10 @@ const PHASES: {
     title: 'Foundation',
     status: 'done',
     items: [
-      'USBT token contract deployed on Tron Mainnet',
+      'USBT token contract deployed and verified',
       'USDT collateral mechanism live',
-      'buyTokens function verified (0x3610724e)',
-      'SunSwap v2 liquidity pair created',
+      'Issuance function verified on-chain',
+      'Liquidity pair established',
     ],
   },
   {
@@ -27,10 +27,11 @@ const PHASES: {
     title: 'Portal',
     status: 'active',
     items: [
-      'Buy USBT portal (USDT → USBT)',
-      'Sell USBT portal (SunSwap routing)',
-      'TronLink wallet integration',
+      'Get USBT portal — deposit USDT, receive USBT',
+      'Redeem portal — exit via on-chain liquidity',
+      'Web3 wallet integration',
       'Mobile-first responsive interface',
+       'Multi-chain deployment expansion',
     ],
   },
   {
@@ -38,10 +39,10 @@ const PHASES: {
     title: 'Ecosystem',
     status: 'upcoming',
     items: [
+     
       'Additional wallet adapter support',
-      'Portfolio / balance dashboard',
-      'Real-time pool analytics',
-      'Community governance exploration',
+      'Portfolio & balance dashboard',
+      'Real-time liquidity analytics',
     ],
   },
 ];

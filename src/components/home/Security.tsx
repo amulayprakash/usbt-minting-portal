@@ -15,7 +15,7 @@ const TRUST_ITEMS = [
   {
     icon: ShieldCheck,
     title: 'On-chain collateral',
-    body: 'Every USBT minted is backed by USDT deposited to the contract. The reserve is visible at any time on TronScan.',
+    body: 'Every USBT minted is backed by USDT deposited to the contract. The reserve is publicly visible at any time.',
   },
   {
     icon: Eye,
@@ -39,8 +39,8 @@ const TRUST_ITEMS = [
   },
   {
     icon: ArrowSquareOut,
-    title: 'SunSwap exit liquidity',
-    body: 'USBT can be sold directly on SunSwap v2 at any time. No application approval required for redemption.',
+    title: 'On-demand redemption',
+    body: 'USBT can be redeemed directly into on-chain liquidity at any time. No portal approval required for exit.',
   },
 ];
 
@@ -75,7 +75,7 @@ export default function Security() {
           </h2>
           <p className="text-slate-500 dark:text-[#8b8ba8] leading-relaxed">
             USBT is built on verifiable on-chain logic. No hidden fees, no opaque reserve management,
-            no trust assumptions beyond the Tron network itself.
+            no trust assumptions beyond the code itself.
           </p>
         </motion.div>
 
@@ -118,7 +118,7 @@ export default function Security() {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-black/[0.09] dark:border-white/[0.09] bg-black/[0.03] dark:bg-white/[0.03] text-sm font-semibold text-slate-500 dark:text-[#8b8ba8] hover:text-slate-900 dark:hover:text-white hover:bg-black/[0.07] dark:hover:bg-white/[0.07] hover:border-black/[0.15] dark:hover:border-white/[0.15] transition-all duration-300"
           >
-            Review contract on TronScan
+            Review contract source
             <ArrowSquareOut size={14} />
           </a>
         </motion.div>
