@@ -276,6 +276,16 @@ function WalletProvider({ children }: { children: ReactNode }) {
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;
 }
 
+// ─── Scroll to top on route change ───────────────────────────────────────────
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
+
 // ─── Animated routes ──────────────────────────────────────────────────────────
 
 function AnimatedRoutes() {
@@ -299,6 +309,7 @@ export default function App() {
       <WalletProvider>
         <ToastProvider>
           <BrowserRouter>
+            <ScrollToTop />
             <AnimatedBackground />
             <div className="noise-overlay" aria-hidden />
             <Navbar />
