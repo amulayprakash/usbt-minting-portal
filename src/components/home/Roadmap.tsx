@@ -82,12 +82,12 @@ export default function Roadmap() {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: '-80px' }}
         transition={{ type: 'spring', stiffness: 260, damping: 26 }}
-        className="mb-14 max-w-xl text-center md:text-left mx-auto md:mx-0"
+        className="mb-14 max-w-xl text-center sm:text-left mx-auto sm:mx-0"
       >
         <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-slate-400 dark:text-[#4a4a6a] mb-3">
           Our progress
         </p>
-        <h2 className="text-4xl md:text-5xl font-black tracking-tighter leading-[1.0] text-slate-900 dark:text-white">
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter leading-[1.0] text-slate-900 dark:text-white">
           Where we're headed.
         </h2>
       </motion.div>
@@ -107,7 +107,7 @@ export default function Roadmap() {
               viewport={{ once: true, margin: '-80px' }}
               transition={{ delay: i * 0.12, type: 'spring', stiffness: 260, damping: 22 }}
               className={`
-                rounded-2xl p-6 border
+                rounded-2xl p-5 sm:p-6 border text-center sm:text-left
                 ${phase.status === 'active'
                   ? 'border-cyan-500/22 bg-cyan-500/[0.04]'
                   : 'border-black/[0.18] dark:border-white/[0.07] bg-black/[0.02] dark:bg-white/[0.02]'
@@ -121,12 +121,12 @@ export default function Roadmap() {
               }}
             >
               {/* Phase number */}
-              <p className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400 dark:text-[#4a4a6a] mb-3">
+              <p className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400 dark:text-[#4a4a6a] mb-3 text-center sm:text-left">
                 {phase.phase}
               </p>
 
               {/* Title + badge */}
-              <div className="flex items-center justify-between gap-3 mb-4">
+              <div className="flex items-center justify-center sm:justify-between gap-3 mb-4 flex-wrap">
                 <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight flex-1">
                   {phase.title}
                 </h3>
@@ -154,7 +154,7 @@ export default function Roadmap() {
               </div>
 
               {/* Items */}
-              <ul className="space-y-3">
+              <ul className="space-y-3 inline-block text-left">
                 {phase.items.map((item, j) => (
                   <motion.li
                     key={item}

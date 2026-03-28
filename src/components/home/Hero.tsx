@@ -369,12 +369,12 @@ export default function Hero() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1, type: 'spring', stiffness: 280, damping: 24 }}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-cyan-500/25 bg-cyan-500/[0.08] mb-6"
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-cyan-500/25 bg-cyan-500/[0.08] mb-6 flex-wrap justify-center"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 relative">
                 <span className="absolute inset-0 rounded-full bg-cyan-400 animate-pulse-ring" />
               </span>
-              <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-600 dark:text-cyan-400">
+              <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.15em] sm:tracking-[0.2em] text-cyan-600 dark:text-cyan-400 text-center">
                 On-chain · Collateral-backed · Instantly liquid
               </span>
             </motion.div>
@@ -384,7 +384,7 @@ export default function Hero() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.18, type: 'spring', stiffness: 260, damping: 24 }}
-              className="text-5xl md:text-6xl lg:text-[64px] font-black tracking-tighter leading-[0.95] text-slate-900 dark:text-white mb-6"
+              className="text-4xl sm:text-5xl md:text-6xl lg:text-[64px] font-black tracking-tighter leading-[0.95] text-slate-900 dark:text-white mb-6"
             >
               The dollar built{' '}
               <br />

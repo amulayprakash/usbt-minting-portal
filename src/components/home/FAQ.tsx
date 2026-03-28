@@ -50,7 +50,7 @@ export default function FAQ() {
         <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-slate-400 dark:text-[#4a4a6a] mb-3">
           Common questions
         </p>
-        <h2 className="text-4xl md:text-5xl font-black tracking-tighter leading-[1.0] text-slate-900 dark:text-white">
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter leading-[1.0] text-slate-900 dark:text-white">
           Questions, answered.
         </h2>
       </motion.div>

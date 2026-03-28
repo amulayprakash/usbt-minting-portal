@@ -415,17 +415,17 @@ export default function ProtocolStats() {
         whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
         viewport={{ once: true, margin: '-80px' }}
         transition={{ type: 'spring', stiffness: 260, damping: 26 }}
-        className="mb-10 max-w-xl text-center md:text-left mx-auto md:mx-0"
+        className="mb-10 max-w-xl text-center sm:text-left mx-auto sm:mx-0"
       >
         <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-slate-400 dark:text-[#4a4a6a] mb-3">
           Proof on the chain
         </p>
-        <h2 className="text-4xl md:text-5xl font-black tracking-tighter leading-[1.0] text-slate-900 dark:text-white">
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter leading-[1.0] text-slate-900 dark:text-white">
           Transparent activity.
           <br />
           Publicly recorded.
         </h2>
-        <p className="mt-4 text-base text-slate-500 dark:text-[#8b8ba8] max-w-[48ch]">
+        <p className="mt-4 text-base text-slate-500 dark:text-[#8b8ba8] max-w-[48ch] mx-auto sm:mx-0">
           Every transaction, every movement — verifiable by anyone.
         </p>
       </motion.div>
@@ -445,12 +445,12 @@ export default function ProtocolStats() {
         ].map((item, i) => (
           <div
             key={item.label}
-            className={`px-5 py-4 ${i < 2 ? 'border-r border-black/[0.10] dark:border-white/[0.07]' : ''} bg-black/[0.02] dark:bg-white/[0.02]`}
+            className={`px-3 sm:px-5 py-4 text-center ${i < 2 ? 'border-r border-black/[0.10] dark:border-white/[0.07]' : ''} bg-black/[0.02] dark:bg-white/[0.02]`}
           >
-            <p className="text-lg font-black tabular-nums text-slate-900 dark:text-white leading-none mb-1">
+            <p className="text-base sm:text-lg font-black tabular-nums text-slate-900 dark:text-white leading-none mb-1">
               {item.value}
             </p>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-400 dark:text-[#4a4a6a]">
+            <p className="text-[9px] sm:text-[10px] font-semibold uppercase tracking-[0.12em] sm:tracking-[0.15em] text-slate-400 dark:text-[#4a4a6a] break-words">
               {item.label}
             </p>
           </div>

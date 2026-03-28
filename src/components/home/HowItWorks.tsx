@@ -44,12 +44,12 @@ export default function HowItWorks() {
         whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
         viewport={{ once: true, margin: '-80px' }}
         transition={{ type: 'spring', stiffness: 260, damping: 26 }}
-        className="mb-14 max-w-xl text-center md:text-left mx-auto md:mx-0"
+        className="mb-14 max-w-xl text-center sm:text-left mx-auto sm:mx-0"
       >
         <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-slate-400 dark:text-[#4a4a6a] mb-3">
           Get started
         </p>
-        <h2 className="text-4xl md:text-5xl font-black tracking-tighter leading-[1.0] text-slate-900 dark:text-white">
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter leading-[1.0] text-slate-900 dark:text-white">
           Up and running
           <br />
           in minutes.
@@ -87,7 +87,7 @@ export default function HowItWorks() {
               >
                 {/* Inner card */}
                 <div
-                  className="relative h-full rounded-[calc(1.5rem-1px)] p-6 flex flex-col gap-4 overflow-hidden"
+                  className="relative h-full rounded-[calc(1.5rem-1px)] p-5 sm:p-6 flex flex-col gap-4 overflow-hidden items-center sm:items-start text-center sm:text-left"
                   style={{
                     background: 'var(--bg-surface)',
                     boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.5)',
@@ -124,7 +124,7 @@ export default function HowItWorks() {
                   </h3>
 
                   {/* Description */}
-                  <p className="text-sm text-slate-500 dark:text-[#8b8ba8] leading-relaxed flex-1 relative z-10">
+                  <p className="text-sm text-slate-500 dark:text-[#8b8ba8] leading-relaxed flex-1 relative z-10 max-w-[40ch] sm:max-w-none">
                     {step.desc}
                   </p>
                 </div>

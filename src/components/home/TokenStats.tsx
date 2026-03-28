@@ -212,13 +212,13 @@ export default function TokenStats() {
           whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
           viewport={{ once: true, margin: '-80px' }}
           transition={{ type: 'spring', stiffness: 260, damping: 26 }}
-          className="mb-12"
+          className="mb-12 text-center sm:text-left"
         >
           <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-slate-400 dark:text-[#4a4a6a] mb-3">
             Protocol snapshot
           </p>
-          <div className="flex flex-col sm:flex-row sm:items-end gap-4 justify-between">
-            <h2 className="text-4xl md:text-5xl font-black tracking-tighter leading-[1.0] text-slate-900 dark:text-white">
+          <div className="flex flex-col sm:flex-row sm:items-end gap-4 justify-between items-center sm:items-stretch">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter leading-[1.0] text-slate-900 dark:text-white text-center sm:text-left">
               Numbers that speak<br className="hidden sm:block" /> for themselves.
             </h2>
             <a
@@ -234,7 +234,7 @@ export default function TokenStats() {
         </motion.div>
 
         {/* Stats grid — 4 editorial stat blocks */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
           {STATS.map((stat, i) => (
             <motion.div
               key={stat.label}
@@ -248,7 +248,7 @@ export default function TokenStats() {
                 damping: 28,
               }}
               className={`
-                relative rounded-3xl p-8 border transition-all duration-300
+                relative rounded-3xl p-6 sm:p-8 border transition-all duration-300 text-center sm:text-left overflow-hidden
                 ${stat.highlight
                   ? 'border-cyan-500/25 bg-cyan-500/[0.05] hover:border-cyan-500/35 hover:bg-cyan-500/[0.08]'
                   : 'border-black/[0.18] dark:border-white/[0.07] bg-black/[0.025] dark:bg-white/[0.025] hover:border-black/[0.12] dark:hover:border-white/[0.12] hover:bg-black/[0.04] dark:hover:bg-white/[0.04]'
@@ -262,7 +262,7 @@ export default function TokenStats() {
             >
               {/* Live badge */}
               {stat.live && (
-                <div className="absolute top-4 right-4 flex items-center gap-1.5">
+                <div className="absolute top-3 right-3 sm:top-4 sm:right-4 flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 relative">
                     <span className="absolute inset-0 rounded-full bg-emerald-400 animate-pulse-ring opacity-70" />
                   </span>
@@ -277,7 +277,7 @@ export default function TokenStats() {
               </p>
 
               <div
-                className={`text-4xl md:text-5xl font-black tracking-tight leading-none mb-3 ${
+                className={`text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-none mb-3 break-words ${
                   stat.highlight ? 'text-cyan-600 dark:text-cyan-300' : 'text-slate-900 dark:text-white'
                 }`}
               >

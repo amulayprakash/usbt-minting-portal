@@ -227,7 +227,7 @@ export default function SupportedChains() {
         </div>
 
         {/* Title */}
-        <h2 className="text-4xl md:text-5xl font-black tracking-tighter leading-[1.0] text-slate-900 dark:text-white mb-3">
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter leading-[1.0] text-slate-900 dark:text-white mb-3">
           Available everywhere
         </h2>
 

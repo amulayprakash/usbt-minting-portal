@@ -46,12 +46,12 @@ export default function Security() {
           whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
           viewport={{ once: true, margin: '-80px' }}
           transition={{ type: 'spring', stiffness: 260, damping: 26 }}
-          className="mb-14 max-w-xl text-center md:text-left mx-auto md:mx-0"
+          className="mb-14 max-w-xl text-center sm:text-left mx-auto sm:mx-0"
         >
           <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-slate-400 dark:text-[#4a4a6a] mb-3">
             Built for trust
           </p>
-          <h2 className="text-4xl md:text-5xl font-black tracking-tighter leading-[1.0] text-slate-900 dark:text-white">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter leading-[1.0] text-slate-900 dark:text-white">
             A stablecoin you
             <br />
             <span
@@ -64,7 +64,7 @@ export default function Security() {
               can count on.
             </span>
           </h2>
-          <p className="mt-4 text-base text-slate-500 dark:text-[#8b8ba8] max-w-[48ch]">
+          <p className="mt-4 text-base text-slate-500 dark:text-[#8b8ba8] max-w-[48ch] mx-auto sm:mx-0">
             Three guarantees. No exceptions.
           </p>
         </motion.div>
@@ -84,7 +84,7 @@ export default function Security() {
                 style={{ background: 'var(--bezel-border)' }}
               >
                 <div
-                  className="h-full rounded-[calc(1.5rem-1px)] p-8 flex flex-col"
+                  className="h-full rounded-[calc(1.5rem-1px)] p-6 sm:p-8 flex flex-col items-center sm:items-start text-center sm:text-left"
                   style={{
                     background: 'var(--bg-surface)',
                     boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.5)',
@@ -108,7 +108,7 @@ export default function Security() {
                   <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight mt-6 mb-3">
                     {pillar.title}
                   </h3>
-                  <p className="text-sm text-slate-500 dark:text-[#8b8ba8] leading-relaxed flex-1">
+                  <p className="text-sm text-slate-500 dark:text-[#8b8ba8] leading-relaxed flex-1 max-w-[40ch] sm:max-w-none">
                     {pillar.body}
                   </p>
 
