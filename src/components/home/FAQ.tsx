@@ -1,6 +1,6 @@
 'use client';
-import { useState, useRef } from 'react';
-import { motion, useInView, AnimatePresence } from 'framer-motion';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Minus } from '@phosphor-icons/react';
 
 const FAQS = [
@@ -10,67 +10,67 @@ const FAQS = [
   },
   {
     q: 'How do I get USBT?',
-    a: 'Connect a compatible Web3 wallet, navigate to the Get USBT page, enter the amount of USDT you want to deposit, approve the transfer, and confirm the issuance transaction. USBT will appear in your wallet once the transaction confirms on-chain.',
+    a: 'Connect a compatible Web3 wallet, navigate to the Get USBT page, enter the amount of USDT you want to deposit, approve the transfer, and confirm the issuance transaction. USBT will appear in your wallet once the transaction confirms on-chain. The whole flow takes under a minute.',
   },
   {
     q: 'How do I redeem USBT?',
     a: 'On the Redeem page, enter the amount of USBT you want to exit. The portal routes the redemption through the on-chain liquidity pair, returning USDT to your wallet at the current pool rate.',
   },
   {
-    q: 'Which wallets are supported?',
+    q: 'Which wallets work?',
     a: "Any compatible Web3 wallet can connect to this portal. Desktop extensions and mobile wallets are both supported. You will need a small amount of the network's native token to cover gas fees.",
   },
   {
-    q: 'What are the fees?',
+    q: 'What does it cost?',
     a: 'Getting USBT incurs only standard network gas fees. Redeeming via the liquidity pool incurs the standard DEX trading fee (0.3%). There is no additional portal fee layered on top.',
   },
   {
-    q: 'Is the contract audited?',
+    q: 'Has the contract been reviewed?',
     a: 'The contract is published and publicly verified. You can review every line of the source code on-chain at any time. Always confirm the contract address matches the one displayed in this portal before interacting.',
   },
   {
     q: 'What happens if liquidity in the pool is low?',
     a: 'Redeeming with low pool liquidity results in higher slippage. The portal displays your estimated output and flags a warning when slippage exceeds 1%. We recommend reviewing pool depth before large redemptions.',
-  }
+  },
 ];
 
 export default function FAQ() {
-  const ref = useRef<HTMLElement>(null);
-  const inView = useInView(ref, { once: true, margin: '-80px' });
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
-    <section ref={ref} className="max-w-4xl mx-auto px-6 py-24">
+    <section className="max-w-4xl mx-auto px-6 py-28">
       {/* Header */}
       <motion.div
-        initial={{ opacity: 0, y: 24 }}
-        animate={inView ? { opacity: 1, y: 0 } : {}}
-        transition={{ type: 'spring', stiffness: 260, damping: 26 }}
+        initial={{ opacity: 0, scale: 0.9, filter: 'blur(8px)' }}
+        whileInView={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+        viewport={{ once: true, margin: '-80px' }}
+        transition={{ type: 'spring', stiffness: 240, damping: 26 }}
         className="text-center mb-14"
       >
         <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-slate-400 dark:text-[#4a4a6a] mb-3">
-          FAQ
+          Common questions
         </p>
-        <h2 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900 dark:text-white">
-          Common questions.
+        <h2 className="text-4xl md:text-5xl font-black tracking-tighter leading-[1.0] text-slate-900 dark:text-white">
+          Questions, answered.
         </h2>
       </motion.div>
 
       {/* Accordion */}
-      <div className="space-y-2">
+      <div className="space-y-3 border-t border-black/[0.06] dark:border-white/[0.04] pt-1">
         {FAQS.map((faq, i) => {
           const isOpen = openIndex === i;
           return (
             <motion.div
               key={i}
-              initial={{ opacity: 0, y: 16 }}
-              animate={inView ? { opacity: 1, y: 0 } : {}}
-              transition={{ delay: i * 0.05, type: 'spring', stiffness: 280, damping: 26 }}
+              initial={{ opacity: 0, y: 24, filter: 'blur(4px)' }}
+              whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ delay: i * 0.07, type: 'spring', stiffness: 280, damping: 26 }}
             >
               <button
                 onClick={() => setOpenIndex(isOpen ? null : i)}
                 className={`
-                  w-full flex items-start gap-4 px-5 py-4 rounded-2xl border text-left
+                  w-full flex items-start gap-4 px-6 py-5 rounded-2xl border text-left
                   transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]
                   ${isOpen
                     ? 'border-cyan-500/22 bg-cyan-500/[0.04]'
@@ -92,7 +92,7 @@ export default function FAQ() {
                 </span>
 
                 <div className="flex-1 min-w-0">
-                  <p className={`text-sm font-semibold leading-snug ${isOpen ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-[#c0c0d0]'}`}>
+                  <p className={`text-base font-semibold leading-snug ${isOpen ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-[#c0c0d0]'}`}>
                     {faq.q}
                   </p>
 

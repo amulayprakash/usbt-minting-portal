@@ -78,7 +78,8 @@ export default function PresaleBanner() {
     <div className="w-full px-4 md:px-6 lg:px-10 py-6">
       <motion.section
         initial={{ opacity: 0, y: -16, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
+        whileInView={{ opacity: 1, y: 0, scale: 1 }}
+        viewport={{ once: true, amount: 0.2 }}
         transition={{ type: 'spring', stiffness: 240, damping: 24, delay: 0.05 }}
         className="relative w-full overflow-hidden rounded-2xl"
         style={{
@@ -159,7 +160,8 @@ export default function PresaleBanner() {
               {/* Live badge — hidden on mobile (replaced by full-width strip above) */}
               <motion.div
                 initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
+                whileInView={{ scale: 1, opacity: 1 }}
+                viewport={{ once: true, amount: 0.5 }}
                 transition={{ delay: 0.15, type: 'spring', stiffness: 300, damping: 22 }}
                 className="hidden sm:flex flex-shrink-0 items-center gap-3 px-5 py-3 rounded-2xl"
                 style={{
@@ -186,7 +188,8 @@ export default function PresaleBanner() {
               {/* Text */}
               <motion.div
                 initial={{ opacity: 0, x: -14 }}
-                animate={{ opacity: 1, x: 0 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true, amount: 0.5 }}
                 transition={{ delay: 0.20, type: 'spring', stiffness: 260, damping: 24 }}
                 className="text-center sm:text-left min-w-0"
               >
@@ -212,7 +215,8 @@ export default function PresaleBanner() {
             {/* Center — countdown */}
             <motion.div
               initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.5 }}
               transition={{ delay: 0.25, type: 'spring', stiffness: 240, damping: 24 }}
               className="flex flex-col items-center gap-3 flex-shrink-0"
             >
@@ -236,7 +240,8 @@ export default function PresaleBanner() {
             {/* Right — CTA */}
             <motion.div
               initial={{ opacity: 0, x: 18 }}
-              animate={{ opacity: 1, x: 0 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, amount: 0.5 }}
               transition={{ delay: 0.30, type: 'spring', stiffness: 240, damping: 24 }}
               className="flex flex-col items-center gap-3 flex-shrink-0"
             >
