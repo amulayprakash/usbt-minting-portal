@@ -4,11 +4,13 @@ import PresaleBanner from '../components/home/PresaleBanner';
 import SupportedChains from '../components/home/SupportedChains';
 import TokenStats from '../components/home/TokenStats';
 import ProtocolStats from '../components/home/ProtocolStats';
+import WhyBuy from '../components/home/WhyBuy';
 import Features from '../components/home/Features';
 import Security from '../components/home/Security';
 import Roadmap from '../components/home/Roadmap';
 import HowItWorks from '../components/home/HowItWorks';
 import FAQ from '../components/home/FAQ';
+import WhitepaperSection from '../components/home/WhitepaperSection';
 
 export default function Home() {
   return (
@@ -21,6 +23,8 @@ export default function Home() {
       <Hero />
       <PresaleBanner />
       <SupportedChains />
+      <WhyBuy />
+      <WhitepaperSection />
       <TokenStats />
       <ProtocolStats />
       <Features />
