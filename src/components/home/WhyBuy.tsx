@@ -297,7 +297,7 @@ export default function WhyBuy() {
             transition={{ type: 'spring', stiffness: 180, damping: 28, delay: 0.1 }}
             className="flex-1 w-full max-w-xl"
           >
-            <div className="relative rounded-[2rem] p-2 bg-white/40 dark:bg-white/5 border border-white/20 dark:border-white/10 shadow-[0_32px_80px_-12px_rgba(0,0,0,0.12)] dark:shadow-[0_32px_80px_-12px_rgba(0,0,0,0.5)] backdrop-blur-3xl transform rotate-1 hover:rotate-0 transition-transform duration-700 ease-out">
+            <div className="relative rounded-[2rem] p-2 bg-white/40 dark:bg-white/5 border border-white/20 dark:border-white/10 shadow-[0_32px_80px_-12px_rgba(0,0,0,0.12)] dark:shadow-[0_32px_80px_-12px_rgba(0,0,0,0.5)] backdrop-blur-3xl transform md:rotate-1 hover:rotate-0 transition-transform duration-700 ease-out">
               <img
                 src="/redeem/Hero Banner — Rewards Section.png"
                 alt="USBT Rewards"
@@ -320,7 +320,7 @@ export default function WhyBuy() {
                 transition={{ type: 'spring', stiffness: 180, damping: 28, delay: 0.1 }}
                 className="w-full max-w-sm xl:max-w-md"
               >
-                <div className="relative rounded-[2rem] p-2 bg-white/40 dark:bg-white/5 border border-white/20 dark:border-white/10 shadow-[0_32px_80px_-12px_rgba(0,0,0,0.12)] dark:shadow-[0_32px_80px_-12px_rgba(0,0,0,0.5)] backdrop-blur-3xl transform -rotate-1 hover:rotate-0 transition-transform duration-700 ease-out">
+                <div className="relative rounded-[2rem] p-2 bg-white/40 dark:bg-white/5 border border-white/20 dark:border-white/10 shadow-[0_32px_80px_-12px_rgba(0,0,0,0.12)] dark:shadow-[0_32px_80px_-12px_rgba(0,0,0,0.5)] backdrop-blur-3xl transform lg:-rotate-1 hover:rotate-0 transition-transform duration-700 ease-out">
                   <img
                     src="/redeem/Why Buy USBT Feature Poster.png"
                     alt="USBT Benefits Overview"
@@ -341,7 +341,7 @@ export default function WhyBuy() {
                 transition={{ type: 'spring', stiffness: 180, damping: 28, delay: 0.1 }}
                 className="w-full max-w-sm sm:max-w-md"
               >
-                <div className="relative rounded-[2rem] p-2 bg-white/40 dark:bg-white/5 border border-white/20 dark:border-white/10 shadow-[0_32px_80px_-12px_rgba(0,0,0,0.12)] dark:shadow-[0_32px_80px_-12px_rgba(0,0,0,0.5)] backdrop-blur-3xl transform -rotate-1 hover:rotate-0 transition-transform duration-700 ease-out">
+                <div className="relative rounded-[2rem] p-2 bg-white/40 dark:bg-white/5 border border-white/20 dark:border-white/10 shadow-[0_32px_80px_-12px_rgba(0,0,0,0.12)] dark:shadow-[0_32px_80px_-12px_rgba(0,0,0,0.5)] backdrop-blur-3xl transform md:-rotate-1 hover:rotate-0 transition-transform duration-700 ease-out">
                   <img
                     src="/redeem/Why Buy USBT Feature Poster.png"
                     alt="USBT Benefits Overview"

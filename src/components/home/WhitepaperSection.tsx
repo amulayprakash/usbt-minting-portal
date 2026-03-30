@@ -35,7 +35,7 @@ export default function WhitepaperSection() {
           </div>
 
           <div className="flex-shrink-0 relative">
-             <div className="relative rounded-[1.5rem] bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 p-8 shadow-2xl border border-white/50 dark:border-white/10 transform rotate-2 hover:rotate-0 hover:scale-105 transition-all duration-500 cursor-pointer" onClick={() => setIsModalOpen(true)}>
+             <div className="relative rounded-[1.5rem] bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 p-8 shadow-2xl border border-white/50 dark:border-white/10 transform md:rotate-2 hover:rotate-0 hover:scale-105 transition-all duration-500 cursor-pointer" onClick={() => setIsModalOpen(true)}>
                 <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-slate-300 to-slate-200 dark:from-slate-700 dark:to-slate-800 rounded-bl-3xl rounded-tr-[1.5rem] shadow-sm flex items-center justify-center">
                    <div className="w-8 h-[2px] bg-slate-400 dark:bg-slate-500 transform rotate-45 -mr-4 -mt-4 opacity-50" />
                 </div>
