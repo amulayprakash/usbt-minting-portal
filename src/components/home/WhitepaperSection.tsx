@@ -1,10 +1,26 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FilePdf, ArrowRight, X } from '@phosphor-icons/react';
 import Button from '../ui/Button';
 
 export default function WhitepaperSection() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPdfLoaded, setIsPdfLoaded] = useState(false);
+
+  // Lock background scroll when modal is active
+  useEffect(() => {
+    if (isModalOpen) {
+      document.body.style.overflow = 'hidden';
+      // Reset loading state when reopening
+      setIsPdfLoaded(false);
+    } else {
+      document.body.style.overflow = '';
+    }
+
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isModalOpen]);
 
   return (
     <>
@@ -109,14 +125,29 @@ export default function WhitepaperSection() {
               
               {/* PDF embed */}
               <div className="flex-1 w-full bg-slate-100 dark:bg-[#080812] overflow-hidden relative">
+                
+                {/* Loading State Overlay */}
+                {!isPdfLoaded && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-100 dark:bg-[#080812] z-10">
+                    <div className="w-12 h-12 flex items-center justify-center mb-4 relative">
+                      <div className="absolute inset-0 border-4 border-cyan-500/20 rounded-full"></div>
+                      <div className="absolute inset-0 border-4 border-cyan-500 rounded-full border-t-transparent animate-spin"></div>
+                    </div>
+                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400 animate-pulse">
+                      Loading PDF Document...
+                    </p>
+                  </div>
+                )}
+
                 <iframe
                   src={
                     typeof window !== 'undefined' && window.innerWidth < 768 && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
                       ? `https://docs.google.com/viewer?url=${encodeURIComponent(window.location.origin + '/USBT - Whitepaper.pdf')}&embedded=true` 
                       : "/USBT%20-%20Whitepaper.pdf"
                   }
-                  className="w-full h-full border-0 absolute inset-0"
+                  className={`w-full h-full border-0 absolute inset-0 transition-opacity duration-300 ${isPdfLoaded ? 'opacity-100' : 'opacity-0'}`}
                   title="USBT Whitepaper"
+                  onLoad={() => setIsPdfLoaded(true)}
                 />
               </div>
 
