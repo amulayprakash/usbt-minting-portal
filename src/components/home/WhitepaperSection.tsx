@@ -68,7 +68,7 @@ export default function WhitepaperSection() {
       {/* PDF Modal */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-[999] flex items-center justify-center p-0 sm:p-6 md:p-8">
+          <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 sm:p-6 md:p-8">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -83,10 +83,10 @@ export default function WhitepaperSection() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="relative w-full max-w-6xl h-full sm:max-h-[90vh] bg-white dark:bg-[#0d0d1a] sm:rounded-[2rem] shadow-2xl overflow-hidden flex flex-col border-0 sm:border border-slate-200 dark:border-white/10"
+              className="relative w-full max-w-6xl h-full sm:max-h-[90vh] bg-white dark:bg-[#0d0d1a] rounded-2xl sm:rounded-[2rem] shadow-2xl overflow-hidden flex flex-col border border-slate-200 dark:border-white/10"
             >
               {/* Header */}
-              <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-200 dark:border-white/10 bg-slate-50/95 dark:bg-[#0d0d1a]/95 backdrop-blur-xl absolute top-0 left-0 right-0 z-20 sm:rounded-t-[2rem]">
+              <div className="flex-shrink-0 flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#0d0d1a] z-20">
                 <div className="flex items-center gap-2 sm:gap-3">
                   <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 flex items-center justify-center border border-cyan-500/20">
                     <FilePdf size={20} weight="fill" />
@@ -107,17 +107,21 @@ export default function WhitepaperSection() {
                 </button>
               </div>
               
-              <div className="flex-1 w-full bg-slate-100 dark:bg-[#080812] pt-[60px] sm:pt-[72px] pb-[80px] sm:pb-0 h-[calc(100vh-80px)] sm:h-auto">
-                {/* PDF embed */}
+              {/* PDF embed */}
+              <div className="flex-1 w-full bg-slate-100 dark:bg-[#080812] overflow-hidden relative">
                 <iframe
-                  src="/USBT%20-%20Whitepaper.pdf"
-                  className="w-full h-full border-0"
+                  src={
+                    typeof window !== 'undefined' && window.innerWidth < 768 && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
+                      ? `https://docs.google.com/viewer?url=${encodeURIComponent(window.location.origin + '/USBT - Whitepaper.pdf')}&embedded=true` 
+                      : "/USBT%20-%20Whitepaper.pdf"
+                  }
+                  className="w-full h-full border-0 absolute inset-0"
                   title="USBT Whitepaper"
                 />
               </div>
 
               {/* Mobile-only sticky bottom close action */}
-              <div className="sm:hidden absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-white via-white/90 dark:from-[#0d0d1a] dark:via-[#0d0d1a]/90 to-transparent z-20">
+              <div className="flex-shrink-0 sm:hidden p-4 bg-white dark:bg-[#0d0d1a] border-t border-slate-200 dark:border-white/10 z-20">
                  <Button
                     variant="primary"
                     fullWidth
