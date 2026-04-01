@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import type { WalletConnectAdapter } from '@tronweb3/tronwallet-adapter-walletconnect';
+import type { SessionTypes } from '@walletconnect/types';
 
 export type ConnectionType = 'none' | 'tronlink' | 'walletconnect';
 
@@ -19,14 +19,22 @@ export interface WalletContextValue extends WalletState {
   getTronWeb: () => typeof window.tronWeb;
   shortenAddress: (addr: string) => string;
   /**
-   * Signs an unsigned Tron transaction via WalletConnect adapter and
+   * Signs an unsigned Tron transaction via WalletConnect and
    * broadcasts it via TronGrid. Throws if not in WC mode.
    * Returns txid on success.
    */
   wcSignAndBroadcast: (unsignedTx: object) => Promise<string>;
-  /** Whether a WalletConnect session is in progress (modal open) */
+  /** Whether a WalletConnect session is in progress */
   wcConnecting: boolean;
-  _wcAdapter: WalletConnectAdapter | null;
+  /**
+   * The current WalletConnect pairing URI — set as soon as
+   * the session proposal is created so the modal can display
+   * a QR code and wallet deep-links before the wallet approves.
+   * Cleared to null once connected or on error.
+   */
+  wcUri: string | null;
+  /** The active WalletConnect session (for advanced use). */
+  _wcSession: SessionTypes.Struct | null;
 }
 
 export const WalletContext = createContext<WalletContextValue>({
@@ -37,7 +45,8 @@ export const WalletContext = createContext<WalletContextValue>({
   tronWebReady: false,
   connectionType: 'none',
   wcConnecting: false,
-  _wcAdapter: null,
+  wcUri: null,
+  _wcSession: null,
   connect: async () => {},
   connectWC: async () => {},
   disconnect: () => {},

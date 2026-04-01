@@ -12,7 +12,7 @@ import {
   type ReactNode,
 } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import type { WalletConnectAdapter } from '@tronweb3/tronwallet-adapter-walletconnect';
+import type { SessionTypes } from '@walletconnect/types';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
 import AnimatedBackground from './components/layout/AnimatedBackground';
@@ -23,40 +23,7 @@ import { ToastProvider } from './components/ui/Toast';
 import { WalletContext, type WalletContextValue, type ConnectionType } from './hooks/useWallet';
 import { ThemeProvider } from './hooks/useTheme';
 import { broadcastTransaction } from './lib/tronGrid';
-
-// ─── WalletConnect adapter singleton ─────────────────────────────────────────
-// Dynamically imported to keep the 930 kB WalletConnect chunk out of the
-// initial bundle — it only loads when the user clicks "WalletConnect".
-let _wcAdapterInstance: WalletConnectAdapter | null = null;
-
-async function getWCAdapter(): Promise<WalletConnectAdapter> {
-  if (!_wcAdapterInstance) {
-    // Dynamic import — Vite will code-split this into the walletconnect chunk
-    const { WalletConnectAdapter } = await import(
-      /* webpackChunkName: "walletconnect" */
-      '@tronweb3/tronwallet-adapter-walletconnect'
-    );
-    _wcAdapterInstance = new WalletConnectAdapter({
-      network: 'Mainnet',
-      options: {
-        projectId: import.meta.env.VITE_WALLETCONNECT_PROJECT_ID as string,
-        metadata: {
-          name: 'USBT Exchange',
-          description: 'Mint and trade USBT on Tron Mainnet',
-          url: window.location.origin,
-          icons: [`${window.location.origin}/favicon.svg`],
-        },
-      },
-      themeMode: 'dark',
-      themeVariables: {
-        '--w3m-z-index': 9990,
-        '--w3m-accent': '#06b6d4',
-        '--w3m-border-radius-master': '3px',
-      },
-    });
-  }
-  return _wcAdapterInstance;
-}
+import { wcConnect, wcSignTx, wcDisconnect, tronAddressFromSession } from './lib/wcSignClient';
 
 // ─── Wallet Provider ──────────────────────────────────────────────────────────
 
@@ -65,10 +32,11 @@ function WalletProvider({ children }: { children: ReactNode }) {
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [wcConnecting, setWcConnecting] = useState(false);
+  const [wcUri, setWcUri] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tronWebReady, setTronWebReady] = useState(false);
   const [connectionType, setConnectionType] = useState<ConnectionType>('none');
-  const wcAdapterRef = useRef<WalletConnectAdapter | null>(null);
+  const wcSessionRef = useRef<SessionTypes.Struct | null>(null);
 
   // ── TronLink detection ──────────────────────────────────────────────────
 
@@ -96,14 +64,12 @@ function WalletProvider({ children }: { children: ReactNode }) {
         setIsConnected(true);
         setConnectionType('tronlink');
       } else if (connectionType === 'tronlink') {
-        // TronLink disconnected
         setAccount(null);
         setIsConnected(false);
         setConnectionType('none');
       }
     };
 
-    // Guard: TronLink in some versions does not expose .on()
     if (window.tronLink && typeof window.tronLink.on === 'function') {
       window.tronLink.on('accountsChanged', onAccountChange);
     }
@@ -122,14 +88,10 @@ function WalletProvider({ children }: { children: ReactNode }) {
     try {
       if (!window.tronLink && !window.tronWeb) {
         window.open('https://www.tronlink.org/', '_blank', 'noopener,noreferrer');
-        throw new Error(
-          'TronLink not detected. Install TronLink and reload the page.'
-        );
+        throw new Error('TronLink not detected. Install TronLink and reload the page.');
       }
       if (window.tronLink) {
-        const accounts = await window.tronLink.request({
-          method: 'tron_requestAccounts',
-        });
+        const accounts = await window.tronLink.request({ method: 'tron_requestAccounts' });
         if (accounts?.[0]) {
           setAccount(accounts[0]);
           setIsConnected(true);
@@ -149,69 +111,44 @@ function WalletProvider({ children }: { children: ReactNode }) {
       }
       throw new Error('Could not connect. Unlock TronLink and try again.');
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Connection failed.';
-      setError(msg);
+      setError(err instanceof Error ? err.message : 'Connection failed.');
       setIsConnecting(false);
       throw err;
     }
   }, []);
 
   // ── WalletConnect connect ───────────────────────────────────────────────
+  // Creates a WC session proposal via SignClient, surfaces the pairing URI
+  // (for QR display and wallet deep-links) immediately, then awaits approval.
 
   const connectWC = useCallback(async () => {
     setWcConnecting(true);
+    setWcUri(null);
     setError(null);
     try {
-      const adapter = await getWCAdapter();
-      wcAdapterRef.current = adapter;
+      const { uri, approval } = await wcConnect();
 
-      // Subscribe to adapter events
-      const onConnect = (addr: unknown) => {
-        const address = addr as string;
-        setAccount(address);
-        setIsConnected(true);
-        setConnectionType('walletconnect');
-        setWcConnecting(false);
-      };
+      // Expose URI right away — WalletModal reads this to render QR + deep-links
+      setWcUri(uri);
 
-      const onDisconnect = () => {
-        setAccount(null);
-        setIsConnected(false);
-        setConnectionType('none');
-        wcAdapterRef.current = null;
-      };
+      // Await wallet approval in background
+      const session = await approval();
+      wcSessionRef.current = session;
 
-      const onError = (err: unknown) => {
-        const msg = err instanceof Error ? err.message : 'WalletConnect error';
-        setError(msg);
-        setWcConnecting(false);
-      };
+      const address = tronAddressFromSession(session);
+      if (!address) throw new Error('Wallet did not return a TRON address.');
 
-      // Remove stale listeners before re-attaching
-      adapter.off('connect', onConnect as (addr: string) => void);
-      adapter.off('disconnect', onDisconnect);
-      adapter.off('error', onError as (err: Error) => void);
-
-      adapter.on('connect', onConnect as (addr: string) => void);
-      adapter.on('disconnect', onDisconnect);
-      adapter.on('error', onError as (err: Error) => void);
-
-      // Opens the WalletConnect AppKit modal (QR code / deep link)
-      await adapter.connect();
-
-      // If connect() resolved without emitting 'connect' yet, read address
-      if (adapter.address) {
-        setAccount(adapter.address);
-        setIsConnected(true);
-        setConnectionType('walletconnect');
-      }
+      setAccount(address);
+      setIsConnected(true);
+      setConnectionType('walletconnect');
+      setWcUri(null);
       setWcConnecting(false);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'WalletConnect failed.';
-      // Suppress "user closed modal" as a non-error UX action
-      if (!msg.toLowerCase().includes('closed')) {
+      if (!msg.toLowerCase().includes('closed') && !msg.toLowerCase().includes('rejected')) {
         setError(msg);
       }
+      setWcUri(null);
       setWcConnecting(false);
       throw err;
     }
@@ -220,31 +157,26 @@ function WalletProvider({ children }: { children: ReactNode }) {
   // ── Disconnect ──────────────────────────────────────────────────────────
 
   const disconnect = useCallback(async () => {
-    if (connectionType === 'walletconnect' && wcAdapterRef.current) {
-      try {
-        await wcAdapterRef.current.disconnect();
-      } catch {
-        // ignore
-      }
-      wcAdapterRef.current = null;
+    if (connectionType === 'walletconnect' && wcSessionRef.current) {
+      await wcDisconnect(wcSessionRef.current.topic);
+      wcSessionRef.current = null;
     }
     setAccount(null);
     setIsConnected(false);
     setConnectionType('none');
+    setWcUri(null);
     setError(null);
   }, [connectionType]);
 
   // ── WC sign + broadcast ─────────────────────────────────────────────────
 
   const wcSignAndBroadcast = useCallback(async (unsignedTx: object): Promise<string> => {
-    const adapter = wcAdapterRef.current;
-    if (!adapter || connectionType !== 'walletconnect') {
+    const session = wcSessionRef.current;
+    if (!session || connectionType !== 'walletconnect') {
       throw new Error('Not connected via WalletConnect.');
     }
-    // adapter.signTransaction expects Tron's raw transaction format
-    const signedTx = await adapter.signTransaction(unsignedTx as Parameters<typeof adapter.signTransaction>[0]);
-    const txid = await broadcastTransaction(signedTx as object);
-    return txid;
+    const signedTx = await wcSignTx(session, unsignedTx);
+    return broadcastTransaction(signedTx);
   }, [connectionType]);
 
   // ── Helpers ─────────────────────────────────────────────────────────────
@@ -264,7 +196,8 @@ function WalletProvider({ children }: { children: ReactNode }) {
     tronWebReady,
     connectionType,
     wcConnecting,
-    _wcAdapter: wcAdapterRef.current,
+    wcUri,
+    _wcSession: wcSessionRef.current,
     connect,
     connectWC,
     disconnect,
