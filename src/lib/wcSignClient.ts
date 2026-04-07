@@ -4,7 +4,7 @@
  * pairing URI and deep-link users into their chosen wallet.
  */
 import SignClient from '@walletconnect/sign-client';
-import type { SessionTypes } from '@walletconnect/types';
+import type { SessionTypes, ProposalTypes } from '@walletconnect/types';
 
 export type { SessionTypes };
 
@@ -40,7 +40,7 @@ export async function wcConnect(chainType: 'tron' | 'evm' = 'tron'): Promise<{
   approval: () => Promise<SessionTypes.Struct>;
 }> {
   const client = await getSignClient();
-  const optionalNamespaces = chainType === 'evm'
+  const optionalNamespaces: ProposalTypes.OptionalNamespaces = chainType === 'evm'
     ? {
         eip155: {
           methods: ['eth_sendTransaction', 'personal_sign', 'eth_signTypedData_v4'],
