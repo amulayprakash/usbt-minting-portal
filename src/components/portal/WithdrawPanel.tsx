@@ -1,19 +1,15 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  CheckCircle, Warning, X, ArrowSquareOut, ShieldCheck, Wallet,
+  CheckCircle, Warning, X, ArrowSquareOut, SignIn,
 } from '@phosphor-icons/react';
 import Button from '../ui/Button';
-import { useWallet } from '../../hooks/useWallet';
 import { useToast } from '../../hooks/useToast';
-import {
-  CONTRACTS, DECIMALS_FACTOR, FEE_LIMIT_SUN, TRONSCAN_TX_URL,
-} from '../../constants/contracts';
-import {
-  buildTriggerSmartContract, broadcastTransaction, callContractConstant,
-  abiEncodeUint256, abiEncodeAddress,
-} from '../../lib/tronGrid';
+import { TRONSCAN_TX_URL } from '../../constants/contracts';
+import { useAuth } from '../../hooks/useAuth';
+
+const EDGE_URL = import.meta.env.VITE_EDGE_FUNCTION_URL as string;
 
 type WithdrawStep = 'idle' | 'signing' | 'success' | 'error';
 
@@ -22,44 +18,22 @@ const TRON_ADDR_RE = /^T[1-9A-HJ-NP-Za-km-z]{33}$/;
 const isValidTronAddress = (addr: string) => TRON_ADDR_RE.test(addr);
 
 export default function WithdrawPanel() {
-  const {
-    account, isConnected, connect, connectWC, isConnecting,
-    connectionType, wcSignAndBroadcast, shortenAddress,
-  } = useWallet();
   const { addToast } = useToast();
+  const { user, session, usbtBalance, refreshBalance, signInWithGoogle } = useAuth();
 
   const [usbtAmount, setUsbtAmount] = useState('');
   const [recipientAddress, setRecipientAddress] = useState('');
-  const [usbtBalance, setUsbtBalance] = useState<number | null>(null);
   const [txStep, setTxStep] = useState<WithdrawStep>('idle');
   const [txid, setTxid] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [addressTouched, setAddressTouched] = useState(false);
 
-  useEffect(() => {
-    if (!isConnected || !account) return;
-    fetchBalance();
-  }, [isConnected, account]);
-
-  const fetchBalance = useCallback(async () => {
-    if (!account) return;
-    try {
-      const hex = await callContractConstant({
-        ownerAddress: account,
-        contractAddress: CONTRACTS.STABLE,
-        functionSelector: 'balanceOf(address)',
-        parameter: abiEncodeAddress(account),
-      });
-      if (hex) setUsbtBalance(Number(BigInt('0x' + hex)) / DECIMALS_FACTOR);
-    } catch { /* silent */ }
-  }, [account]);
-
   const handleMaxUsbt = () => {
-    if (usbtBalance !== null) setUsbtAmount(usbtBalance.toFixed(6));
+    if (usbtBalance > 0) setUsbtAmount(usbtBalance.toFixed(6));
   };
 
   const handleWithdraw = async () => {
-    if (!account) return;
+    if (!user || !session) return;
     const parsed = parseFloat(usbtAmount);
     if (!parsed || parsed <= 0 || !isValidTronAddress(recipientAddress)) return;
 
@@ -67,72 +41,33 @@ export default function WithdrawPanel() {
     setTxid(null);
     setTxStep('signing');
 
-    const amountUnits = BigInt(Math.floor(parsed * DECIMALS_FACTOR));
-    let transferParam: string;
     try {
-      transferParam = abiEncodeAddress(recipientAddress) + abiEncodeUint256(amountUnits);
-    } catch {
-      setErrorMsg('Invalid recipient address. Please check and try again.');
-      setTxStep('error');
-      return;
-    }
-
-    try {
-      if (connectionType === 'walletconnect') {
-        const txObj = await buildTriggerSmartContract({
-          ownerAddress: account,
-          contractAddress: CONTRACTS.STABLE,
-          functionSelector: 'transfer(address,uint256)',
-          parameter: transferParam,
-          feeLimit: FEE_LIMIT_SUN,
-        });
-        const hash = await wcSignAndBroadcast(txObj);
-        setTxid(hash);
-        setTxStep('success');
-        setUsbtAmount('');
-        setRecipientAddress('');
-        setAddressTouched(false);
-        fetchBalance();
-        addToast({
-          type: 'success',
-          title: 'Withdrawal complete',
-          message: 'USBT has been sent to the recipient.',
-          txid: hash,
-          duration: 8000,
-        });
-        return;
-      }
-
-      if (!window.tronWeb) throw new Error('TronLink not detected. Please install TronLink.');
-      const tronWeb: any = window.tronWeb;
-
-      const txObj = await buildTriggerSmartContract({
-        ownerAddress: account,
-        contractAddress: CONTRACTS.STABLE,
-        functionSelector: 'transfer(address,uint256)',
-        parameter: transferParam,
-        feeLimit: FEE_LIMIT_SUN,
+      const res = await fetch(`${EDGE_URL}execute-withdraw`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ tron_address: recipientAddress, usbt_amount: parsed }),
       });
-      const signedTx = await tronWeb.trx.sign(txObj);
-      const hash = await broadcastTransaction(signedTx);
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error ?? 'Withdrawal failed. Please try again.');
 
-      setTxid(hash);
+      setTxid(json.tx_hash ?? null);
       setTxStep('success');
       setUsbtAmount('');
       setRecipientAddress('');
       setAddressTouched(false);
-      fetchBalance();
+      await refreshBalance();
       addToast({
         type: 'success',
         title: 'Withdrawal complete',
         message: 'USBT has been sent to the recipient.',
-        txid: hash,
+        txid: json.tx_hash,
         duration: 8000,
       });
     } catch (err) {
-      const msg = err instanceof Error
-        ? err.message
-        : 'Transaction rejected or failed. Please try again.';
+      const msg = err instanceof Error ? err.message : 'Withdrawal failed. Please try again.';
       setErrorMsg(msg);
       setTxStep('error');
       addToast({ type: 'error', title: 'Withdrawal failed', message: msg });
@@ -146,11 +81,11 @@ export default function WithdrawPanel() {
   };
 
   const parsedUsbt = parseFloat(usbtAmount) || 0;
-  const insufficient = usbtBalance !== null && parsedUsbt > usbtBalance;
+  const insufficient = parsedUsbt > usbtBalance;
   const addressValid = isValidTronAddress(recipientAddress);
   const addressInvalid = addressTouched && recipientAddress.length > 0 && !addressValid;
   const canSubmit =
-    isConnected &&
+    !!user &&
     parsedUsbt > 0 &&
     !insufficient &&
     addressValid &&
@@ -203,46 +138,36 @@ export default function WithdrawPanel() {
                 </div>
               </div>
 
-              {!isConnected ? (
-                /* ── Not Connected ── */
+              {!user ? (
+                /* ── Not Signed In ── */
                 <div className="space-y-3">
                   <div className="text-center py-6">
                     <div
                       className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4"
                       style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
                     >
-                      <Wallet size={24} className="text-slate-500" />
+                      <SignIn size={24} className="text-slate-500" />
                     </div>
-                    <p className="text-sm font-semibold text-white mb-1.5">Connect your wallet</p>
+                    <p className="text-sm font-semibold text-white mb-1.5">Sign in to withdraw</p>
                     <p className="text-xs text-slate-500 mb-5">
-                      Connect a TRON wallet to withdraw USBT.
+                      Sign in with Google to access your USBT balance and withdraw.
                     </p>
                     <div className="flex flex-col gap-2.5 max-w-xs mx-auto">
                       <Button
                         variant="primary"
                         size="lg"
                         fullWidth
-                        loading={isConnecting}
-                        onClick={connect}
+                        onClick={signInWithGoogle}
                       >
-                        Connect TronLink
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="md"
-                        fullWidth
-                        loading={isConnecting}
-                        onClick={connectWC}
-                      >
-                        WalletConnect
+                        Sign in with Google
                       </Button>
                     </div>
                   </div>
                 </div>
               ) : (
-                /* ── Connected: Show Form ── */
+                /* ── Signed In: Show Form ── */
                 <div className="space-y-4">
-                  {/* Wallet status */}
+                  {/* Account status */}
                   <div
                     className="flex items-center gap-2.5 px-3 py-2 rounded-lg"
                     style={{ background: 'rgba(6,182,212,0.06)', border: '1px solid rgba(6,182,212,0.15)' }}
@@ -251,31 +176,31 @@ export default function WithdrawPanel() {
                       className="w-1.5 h-1.5 rounded-full bg-emerald-400"
                       style={{ boxShadow: '0 0 4px rgba(52,211,153,0.7)' }}
                     />
-                    <span className="text-[11px] font-mono text-cyan-400 flex-1">
-                      {account ? shortenAddress(account) : ''}
+                    <span className="text-[11px] text-cyan-400 flex-1 truncate">
+                      {user.email}
                     </span>
-                    <ShieldCheck size={12} weight="fill" className="text-emerald-400" />
+                    <span className="text-[11px] font-mono font-bold text-cyan-300 flex-shrink-0">
+                      {usbtBalance.toFixed(2)} USBT
+                    </span>
                   </div>
 
                   {/* Amount input */}
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <label className="text-xs font-semibold text-slate-400">Amount (USBT)</label>
-                      {usbtBalance !== null && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-slate-500">
-                            Balance&nbsp;
-                            <span className="font-mono text-slate-400">{usbtBalance.toFixed(2)}</span>
-                          </span>
-                          <button
-                            onClick={handleMaxUsbt}
-                            className="text-[10px] font-bold text-cyan-500 hover:text-cyan-400 transition-colors px-2 py-0.5 rounded"
-                            style={{ background: 'rgba(6,182,212,0.10)' }}
-                          >
-                            MAX
-                          </button>
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-500">
+                          Balance&nbsp;
+                          <span className="font-mono text-slate-400">{usbtBalance.toFixed(2)}</span>
+                        </span>
+                        <button
+                          onClick={handleMaxUsbt}
+                          className="text-[10px] font-bold text-cyan-500 hover:text-cyan-400 transition-colors px-2 py-0.5 rounded"
+                          style={{ background: 'rgba(6,182,212,0.10)' }}
+                        >
+                          MAX
+                        </button>
+                      </div>
                     </div>
                     <div
                       className="flex items-center gap-3 rounded-xl px-4 py-3.5"
@@ -372,7 +297,7 @@ export default function WithdrawPanel() {
                     >
                       <span className="w-4 h-4 rounded-full border-[1.5px] border-cyan-400 border-t-transparent animate-spin flex-shrink-0" />
                       <span className="text-sm text-cyan-300">
-                        Sending USBT… confirm in wallet
+                        Processing withdrawal…
                       </span>
                     </div>
                   )}

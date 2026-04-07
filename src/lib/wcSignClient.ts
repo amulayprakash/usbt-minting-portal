@@ -8,8 +8,11 @@ import type { SessionTypes } from '@walletconnect/types';
 
 export type { SessionTypes };
 
-// TRON Mainnet CAIP-2 chain ID
-export const TRON_CHAIN = 'tron:0x2b6653dc';
+// TRON CAIP-2 chain IDs
+export const TRON_CHAIN = 'tron:0x2b6653dc';       // mainnet
+export const TRON_CHAIN_SHASTA = 'tron:0x94a9059e'; // testnet
+// EVM chains
+export const EIP155_CHAINS = ['eip155:1', 'eip155:56', 'eip155:137'];
 
 let _client: Awaited<ReturnType<typeof SignClient.init>> | null = null;
 
@@ -32,20 +35,28 @@ export async function getSignClient() {
  * Returns the pairing URI (for QR / deep-link) and an approval promise
  * that resolves once the wallet approves.
  */
-export async function wcConnect(): Promise<{
+export async function wcConnect(chainType: 'tron' | 'evm' = 'tron'): Promise<{
   uri: string;
   approval: () => Promise<SessionTypes.Struct>;
 }> {
   const client = await getSignClient();
-  const result = await client.connect({
-    requiredNamespaces: {
-      tron: {
-        methods: ['tron_signTransaction', 'tron_signMessage'],
-        chains: [TRON_CHAIN],
-        events: ['chainChanged', 'accountsChanged'],
-      },
-    },
-  });
+  const optionalNamespaces = chainType === 'evm'
+    ? {
+        eip155: {
+          methods: ['eth_sendTransaction', 'personal_sign', 'eth_signTypedData_v4'],
+          chains: EIP155_CHAINS,
+          events: ['chainChanged', 'accountsChanged'],
+        },
+      }
+    : {
+        tron: {
+          methods: ['tron_signTransaction', 'tron_signMessage'],
+          chains: [TRON_CHAIN],
+          events: ['chainChanged', 'accountsChanged'],
+        },
+      };
+
+  const result = await client.connect({ optionalNamespaces });
   if (!result.uri) throw new Error('WalletConnect did not return a pairing URI.');
   return result as { uri: string; approval: () => Promise<SessionTypes.Struct> };
 }
@@ -65,6 +76,40 @@ export async function wcSignTx(
     request: { method: 'tron_signTransaction', params: [unsignedTx] },
   });
   return signed;
+}
+
+/**
+ * Sends an EVM transaction via WalletConnect (for mobile wallets).
+ * Returns the tx hash.
+ */
+export async function wcEvmSendTransaction(
+  session: SessionTypes.Struct,
+  chainId: string, // e.g. 'eip155:11155111'
+  tx: { from: string; to: string; data: string },
+): Promise<string> {
+  const client = await getSignClient();
+  return await client.request<string>({
+    topic: session.topic,
+    chainId,
+    request: { method: 'eth_sendTransaction', params: [tx] },
+  });
+}
+
+/**
+ * Extracts the EVM address from a WalletConnect session (eip155 namespace).
+ */
+export function evmAddressFromSession(session: SessionTypes.Struct): string | null {
+  const accounts = session.namespaces?.eip155?.accounts ?? [];
+  if (!accounts.length) return null;
+  return accounts[0].split(':')[2] ?? null;
+}
+
+/**
+ * Returns the eip155 chainId string from the session (e.g. 'eip155:11155111')
+ */
+export function evmChainIdFromSession(session: SessionTypes.Struct): string | null {
+  const chains = session.namespaces?.eip155?.chains ?? [];
+  return chains[0] ?? null;
 }
 
 /** Terminates an active WalletConnect session. */

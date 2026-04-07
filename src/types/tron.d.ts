@@ -47,9 +47,18 @@ export interface TronLinkProvider {
   ready: boolean;
 }
 
+export interface EthereumProvider {
+  request: (params: { method: string; params?: unknown[] }) => Promise<unknown>;
+  on: (event: string, handler: (...args: unknown[]) => void) => void;
+  removeListener: (event: string, handler: (...args: unknown[]) => void) => void;
+  isMetaMask?: boolean;
+  selectedAddress?: string | null;
+}
+
 declare global {
   interface Window {
     tronWeb: TronWebInstance | undefined;
     tronLink: TronLinkProvider | undefined;
+    ethereum: EthereumProvider | undefined;
   }
 }

@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react';
 import type { SessionTypes } from '@walletconnect/types';
 
-export type ConnectionType = 'none' | 'tronlink' | 'walletconnect';
+export type ConnectionType = 'none' | 'tronlink' | 'walletconnect' | 'evm';
 
 export interface WalletState {
   account: string | null;
@@ -14,7 +14,8 @@ export interface WalletState {
 
 export interface WalletContextValue extends WalletState {
   connect: () => Promise<void>;
-  connectWC: () => Promise<void>;
+  connectWC: (chainType?: 'tron' | 'evm') => Promise<void>;
+  connectExtension: (walletName: string) => Promise<void>;
   disconnect: () => void;
   getTronWeb: () => typeof window.tronWeb;
   shortenAddress: (addr: string) => string;
@@ -48,7 +49,8 @@ export const WalletContext = createContext<WalletContextValue>({
   wcUri: null,
   _wcSession: null,
   connect: async () => {},
-  connectWC: async () => {},
+  connectWC: async (_chainType?: 'tron' | 'evm') => {},
+  connectExtension: async () => {},
   disconnect: () => {},
   getTronWeb: () => undefined,
   shortenAddress: (a) => a,

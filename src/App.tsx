@@ -19,7 +19,9 @@ import AnimatedBackground from './components/layout/AnimatedBackground';
 import Home from './pages/Home';
 import Buy from './pages/Buy';
 import Sell from './pages/Sell';
+import Dashboard from './pages/Dashboard';
 import { ToastProvider } from './components/ui/Toast';
+import { AuthProvider } from './hooks/useAuth';
 import { WalletContext, type WalletContextValue, type ConnectionType } from './hooks/useWallet';
 import { ThemeProvider } from './hooks/useTheme';
 import { broadcastTransaction } from './lib/tronGrid';
@@ -117,16 +119,73 @@ function WalletProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // ── Direct extension connect (non-TronLink installed wallets) ──────────
+
+  const connectExtension = useCallback(async (walletName: string) => {
+    setIsConnecting(true);
+    setError(null);
+    try {
+      let address: string | null = null;
+
+      // ── Tron-compatible wallets ─────────────────────────────────────
+      if (walletName === 'OKX Wallet') {
+        const provider = (window as any).okxwallet?.tronLink;
+        if (!provider) throw new Error('OKX Wallet extension not found.');
+        const res = await provider.request({ method: 'tron_requestAccounts' });
+        address = (Array.isArray(res) ? res[0] : null) ?? provider.defaultAddress?.base58 ?? null;
+        if (address) {
+          setAccount(address);
+          setIsConnected(true);
+          setTronWebReady(true);
+          setConnectionType('tronlink');
+          setIsConnecting(false);
+          return;
+        }
+      }
+
+      if (walletName === 'Bitget Wallet') {
+        const provider = (window as any).bitkeep?.tronLink;
+        if (!provider) throw new Error('Bitget Wallet extension not found.');
+        const res = await provider.request({ method: 'tron_requestAccounts' });
+        address = (Array.isArray(res) ? res[0] : null) ?? provider.defaultAddress?.base58 ?? null;
+        if (address) {
+          setAccount(address);
+          setIsConnected(true);
+          setTronWebReady(true);
+          setConnectionType('tronlink');
+          setIsConnecting(false);
+          return;
+        }
+      }
+
+      // ── EVM wallets (MetaMask, Coinbase, Trust, etc.) ───────────────
+      const eth = (window as any).ethereum;
+      if (!eth) throw new Error(`${walletName} extension not found.`);
+      const accounts: string[] = await eth.request({ method: 'eth_requestAccounts' });
+      address = accounts?.[0] ?? null;
+      if (!address) throw new Error(`${walletName} did not return an account.`);
+      setAccount(address);
+      setIsConnected(true);
+      setConnectionType('evm');
+      setIsConnecting(false);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Connection failed.';
+      setError(msg);
+      setIsConnecting(false);
+      throw err;
+    }
+  }, []);
+
   // ── WalletConnect connect ───────────────────────────────────────────────
   // Creates a WC session proposal via SignClient, surfaces the pairing URI
   // (for QR display and wallet deep-links) immediately, then awaits approval.
 
-  const connectWC = useCallback(async () => {
+  const connectWC = useCallback(async (chainType: 'tron' | 'evm' = 'tron') => {
     setWcConnecting(true);
     setWcUri(null);
     setError(null);
     try {
-      const { uri, approval } = await wcConnect();
+      const { uri, approval } = await wcConnect(chainType);
 
       // Expose URI right away — WalletModal reads this to render QR + deep-links
       setWcUri(uri);
@@ -135,12 +194,18 @@ function WalletProvider({ children }: { children: ReactNode }) {
       const session = await approval();
       wcSessionRef.current = session;
 
-      const address = tronAddressFromSession(session);
-      if (!address) throw new Error('Wallet did not return a TRON address.');
+      // Prefer TRON address; fall back to EVM address
+      const tronAddr = tronAddressFromSession(session);
+      const evmAccounts = session.namespaces?.eip155?.accounts ?? [];
+      const evmAddr = evmAccounts.length > 0 ? (evmAccounts[0].split(':')[2] ?? null) : null;
+
+      const address = tronAddr ?? evmAddr;
+      if (!address) throw new Error('Wallet did not return a supported address.');
 
       setAccount(address);
       setIsConnected(true);
-      setConnectionType('walletconnect');
+      // 'evm' = only EVM namespace returned (no TRON); 'walletconnect' = TRON via WC
+      setConnectionType(tronAddr ? 'walletconnect' : 'evm');
       setWcUri(null);
       setWcConnecting(false);
     } catch (err) {
@@ -200,6 +265,7 @@ function WalletProvider({ children }: { children: ReactNode }) {
     _wcSession: wcSessionRef.current,
     connect,
     connectWC,
+    connectExtension,
     disconnect,
     getTronWeb,
     shortenAddress,
@@ -229,6 +295,7 @@ function AnimatedRoutes() {
         <Route path="/" element={<Home />} />
         <Route path="/buy" element={<Buy />} />
         <Route path="/sell" element={<Sell />} />
+        <Route path="/dashboard" element={<Dashboard />} />
       </Routes>
     </AnimatePresence>
   );
@@ -239,18 +306,20 @@ function AnimatedRoutes() {
 export default function App() {
   return (
     <ThemeProvider>
-      <WalletProvider>
-        <ToastProvider>
-          <BrowserRouter>
-            <ScrollToTop />
-            <AnimatedBackground />
-            <div className="noise-overlay" aria-hidden />
-            <Navbar />
-            <AnimatedRoutes />
-            <Footer />
-          </BrowserRouter>
-        </ToastProvider>
-      </WalletProvider>
+      <AuthProvider>
+        <WalletProvider>
+          <ToastProvider>
+            <BrowserRouter>
+              <ScrollToTop />
+              <AnimatedBackground />
+              <div className="noise-overlay" aria-hidden />
+              <Navbar />
+              <AnimatedRoutes />
+              <Footer />
+            </BrowserRouter>
+          </ToastProvider>
+        </WalletProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

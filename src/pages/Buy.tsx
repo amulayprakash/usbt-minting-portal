@@ -8,6 +8,7 @@ import {
 } from '@phosphor-icons/react';
 import BuyPortal from '../components/portal/BuyPortal';
 import WithdrawPanel from '../components/portal/WithdrawPanel';
+import PendingDeposits from '../components/portal/PendingDeposits';
 import { CONTRACTS, TRONSCAN_CONTRACT_URL } from '../constants/contracts';
 
 type ActiveTab = 'buy' | 'withdraw';
@@ -18,7 +19,7 @@ const OFFERS = [
   {
     id: 'starter',
     label: 'Starter Boost',
-    sublabel: 'Purchase 20,000+ USDT',
+    sublabel: 'Deposit $20,000+ in stablecoins',
     minUsdt: 20_000,
     bonusPct: 10,
     icon: Star,
@@ -34,7 +35,7 @@ const OFFERS = [
   {
     id: 'growth',
     label: 'Growth Pack',
-    sublabel: 'Purchase 50,000+ USDT',
+    sublabel: 'Deposit $50,000+ in stablecoins',
     minUsdt: 50_000,
     bonusPct: 15,
     icon: Lightning,
@@ -50,7 +51,7 @@ const OFFERS = [
   {
     id: 'elite',
     label: 'Elite Tier',
-    sublabel: 'Purchase 100,000+ USDT',
+    sublabel: 'Deposit $100,000+ in stablecoins',
     minUsdt: 100_000,
     bonusPct: 20,
     icon: Crown,
@@ -209,7 +210,7 @@ const HOW_IT_WORKS = [
   {
     n: '03',
     title: 'Enter amount & approve',
-    desc: 'Type how much USDT you want to spend. Approve the token transfer, then confirm the buyTokens transaction in your wallet.',
+    desc: 'Type how much you want to deposit. Approve the token transfer, then confirm the deposit transaction in your wallet.',
   },
   {
     n: '04',
@@ -408,6 +409,7 @@ function MobileTab({
 export default function Buy() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('buy');
   const [prefillAmount, setPrefillAmount] = useState<number | null>(null);
+  const [depositSignal, setDepositSignal] = useState(0);
   const portalRef = useRef<HTMLDivElement>(null);
 
   const handleOfferSelect = (minUsdt: number) => {
@@ -485,7 +487,7 @@ export default function Buy() {
               <NavItem
                 icon={<DownloadSimple size={17} />}
                 label="Buy USBT"
-                sublabel="USDT → USBT"
+                sublabel="Stablecoin → USBT"
                 active={activeTab === 'buy'}
                 onClick={() => setActiveTab('buy')}
               />
@@ -515,9 +517,9 @@ export default function Buy() {
                   Network
                 </span>
               </div>
-              <p className="text-xs font-semibold text-white mb-0.5">TRON Mainnet</p>
+              <p className="text-xs font-semibold text-white mb-0.5">Multi-chain</p>
               <p className="text-[10px] text-slate-600 leading-relaxed">
-                Only USDT on TRON is supported. Ensure your wallet is on TRON.
+                USDT, USDC, BUSD, and DAI supported across TRON, Ethereum, BNB Chain, and more.
               </p>
             </div>
 
@@ -581,11 +583,11 @@ export default function Buy() {
                           backgroundImage: 'linear-gradient(135deg, #67e8f9 0%, #06b6d4 60%)',
                         }}
                       >
-                        with USDT.
+                        with any stablecoin.
                       </span>
                     </h1>
                     <p className="text-sm text-slate-500 mt-2 max-w-sm">
-                      Select a stablecoin and network, connect your wallet, then enter the amount.
+                      Pick your stablecoin and network, connect your wallet, then enter the amount.
                     </p>
                   </motion.div>
                 ) : (
@@ -629,7 +631,11 @@ export default function Buy() {
                   exit={{ opacity: 0, x: 12 }}
                   transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                 >
-                  <BuyPortal prefillAmount={prefillAmount} />
+                  <BuyPortal
+                    prefillAmount={prefillAmount}
+                    onDepositSuccess={() => setDepositSignal(s => s + 1)}
+                  />
+                  <PendingDeposits refreshSignal={depositSignal} />
                   <BuyOverview />
                 </motion.div>
               ) : (

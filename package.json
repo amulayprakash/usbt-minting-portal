@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.7",
+    "@supabase/supabase-js": "^2.101.1",
     "@tronweb3/tronwallet-adapter-walletconnect": "^3.0.3",
     "clsx": "^2.1.1",
     "framer-motion": "^11.3.0",

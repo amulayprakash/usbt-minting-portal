@@ -15,25 +15,95 @@ interface WCWallet {
   desktop: { native: string; universal: string };
 }
 
+interface DetectableWallet {
+  name: string;
+  wcName: string; // case-insensitive match against WC registry
+  detect: () => boolean;
+}
+
+const DETECTABLE_WALLETS: DetectableWallet[] = [
+  {
+    name: 'MetaMask', wcName: 'MetaMask',
+    detect: () => {
+      const eth = (window as any).ethereum;
+      const providers: any[] = eth?.providers ?? (eth ? [eth] : []);
+      return providers.some((p: any) => p.isMetaMask && !p.isBraveWallet);
+    },
+  },
+  {
+    name: 'Coinbase Wallet', wcName: 'Coinbase Wallet',
+    detect: () => {
+      const eth = (window as any).ethereum;
+      const providers: any[] = eth?.providers ?? (eth ? [eth] : []);
+      return providers.some((p: any) => p.isCoinbaseWallet) || !!(window as any).coinbaseWalletExtension;
+    },
+  },
+  {
+    name: 'Trust Wallet', wcName: 'Trust Wallet',
+    detect: () => !!(window as any).ethereum?.isTrust || !!(window as any).trustwallet,
+  },
+  {
+    name: 'OKX Wallet', wcName: 'OKX Wallet',
+    detect: () => !!(window as any).okxwallet,
+  },
+  {
+    name: 'Bitget Wallet', wcName: 'Bitget Wallet',
+    detect: () => !!(window as any).bitkeep || !!(window as any).bitgetEthProvider,
+  },
+  {
+    name: 'Brave Wallet', wcName: 'Brave Wallet',
+    detect: () => !!(window as any).ethereum?.isBraveWallet,
+  },
+  {
+    name: 'Rainbow', wcName: 'Rainbow',
+    detect: () => {
+      const eth = (window as any).ethereum;
+      const providers: any[] = eth?.providers ?? (eth ? [eth] : []);
+      return providers.some((p: any) => p.isRainbow);
+    },
+  },
+  {
+    name: 'Phantom', wcName: 'Phantom',
+    detect: () => !!(window as any).phantom,
+  },
+  {
+    name: 'Rabby Wallet', wcName: 'Rabby Wallet',
+    detect: () => !!(window as any).ethereum?.isRabby,
+  },
+  {
+    name: 'TokenPocket', wcName: 'TokenPocket',
+    detect: () => !!(window as any).tokenpocket || !!(window as any).TokenPocket,
+  },
+];
+
 type View = 'all' | 'connecting';
 
 interface WalletModalProps {
   open: boolean;
   onClose: () => void;
+  chainType?: 'tron' | 'evm';
 }
 
-export default function WalletModal({ open, onClose }: WalletModalProps) {
-  const { connect, connectWC, isConnecting, wcConnecting, wcUri, isConnected, error } = useWallet();
+export default function WalletModal({ open, onClose, chainType = 'tron' }: WalletModalProps) {
+  const { connect, connectWC, connectExtension, isConnecting, wcConnecting, wcUri, isConnected, error } = useWallet();
   const [tronLinkInstalled, setTronLinkInstalled] = useState(false);
   const [view, setView] = useState<View>('all');
   const [wallets, setWallets] = useState<WCWallet[]>([]);
   const [search, setSearch] = useState('');
   const [loadingWallets, setLoadingWallets] = useState(false);
   const [selectedWallet, setSelectedWallet] = useState<WCWallet | null>(null);
+  const [detectedNames, setDetectedNames] = useState<string[]>([]);
+  const [extensionConnecting, setExtensionConnecting] = useState<string | null>(null);
   const approvalStarted = useRef(false);
 
   useEffect(() => {
     setTronLinkInstalled(!!(window as any).tronWeb || !!(window as any).tronLink);
+    if (open) {
+      const detected = DETECTABLE_WALLETS.filter(w => {
+        try { return w.detect(); } catch { return false; }
+      }).map(w => w.name);
+      setDetectedNames(detected);
+    }
   }, [open]);
 
   // Fetch wallet list on open
@@ -42,6 +112,7 @@ export default function WalletModal({ open, onClose }: WalletModalProps) {
       setView('all');
       setSearch('');
       setSelectedWallet(null);
+      setExtensionConnecting(null);
       approvalStarted.current = false;
       return;
     }
@@ -76,12 +147,30 @@ export default function WalletModal({ open, onClose }: WalletModalProps) {
     return () => { document.body.style.overflow = ''; };
   }, [open]);
 
+  const installedNameSet = useMemo(
+    () => new Set(detectedNames.map(n => n.toLowerCase())),
+    [detectedNames]
+  );
+
+  // Detected wallets resolved to their WC registry entry (for icon + deep-link)
+  const installedWcWallets = useMemo(() =>
+    detectedNames.map(name => ({
+      name,
+      wcWallet: wallets.find(w => w.name.toLowerCase() === name.toLowerCase()) ?? null,
+    })),
+  [detectedNames, wallets]);
+
   const filtered = useMemo(() => {
     const base = !search.trim() ? wallets : wallets.filter(w =>
       w.name.toLowerCase().includes(search.toLowerCase())
     );
-    return base;
-  }, [wallets, search]);
+    // Sort installed wallets to the top of the grid
+    return [...base].sort((a, b) => {
+      const aIn = installedNameSet.has(a.name.toLowerCase()) ? 0 : 1;
+      const bIn = installedNameSet.has(b.name.toLowerCase()) ? 0 : 1;
+      return aIn - bIn;
+    });
+  }, [wallets, search, installedNameSet]);
 
   const getImgUrl = (w: WCWallet): string | undefined => {
     if (typeof w.image_url === 'string') return w.image_url;
@@ -101,13 +190,26 @@ export default function WalletModal({ open, onClose }: WalletModalProps) {
     try { await connect(); onClose(); } catch {}
   };
 
-  // Start WC session and move to connecting view
+  const handleExtensionConnect = async (walletName: string) => {
+    if (extensionConnecting) return;
+    setExtensionConnecting(walletName);
+    try {
+      await connectExtension(walletName);
+      onClose();
+    } catch {
+      // error shown via context
+    } finally {
+      setExtensionConnecting(null);
+    }
+  };
+
+  // Start WC session and move to connecting view (always QR for grid wallets)
   const handleWalletClick = async (wallet: WCWallet | null) => {
     if (approvalStarted.current) return;
     approvalStarted.current = true;
     setSelectedWallet(wallet);
     try {
-      await connectWC(); // sets wcUri → triggers view change → awaits approval → auto-close
+      await connectWC(chainType); // pass chain type so only the right namespace is requested
     } catch {
       approvalStarted.current = false;
       setView('all');
@@ -172,7 +274,7 @@ export default function WalletModal({ open, onClose }: WalletModalProps) {
                     </div>
 
                     {/* TronLink row */}
-                    <div className="px-3 pb-2 flex-shrink-0">
+                    <div className="px-3 pb-1 flex-shrink-0">
                       <WalletRow
                         icon={<TronLinkIcon />}
                         label="TronLink"
@@ -181,6 +283,28 @@ export default function WalletModal({ open, onClose }: WalletModalProps) {
                         onClick={handleTronLink}
                       />
                     </div>
+
+                    {/* Other installed browser wallets — connect directly via extension */}
+                    {installedWcWallets.length > 0 && (
+                      <div className="px-3 pb-2 flex-shrink-0">
+                        {installedWcWallets.map(({ name, wcWallet }) => (
+                          <WalletRow
+                            key={name}
+                            icon={
+                              wcWallet ? (
+                                <WcWalletIcon wallet={wcWallet} getImgUrl={getImgUrl} />
+                              ) : (
+                                <span className="text-white font-bold text-base">{name[0]}</span>
+                              )
+                            }
+                            label={name}
+                            badge={{ text: 'INSTALLED', color: 'green' }}
+                            loading={extensionConnecting === name}
+                            onClick={() => handleExtensionConnect(name)}
+                          />
+                        ))}
+                      </div>
+                    )}
 
                     {/* Divider */}
                     <div className="mx-5 mb-3 flex-shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
@@ -223,6 +347,7 @@ export default function WalletModal({ open, onClose }: WalletModalProps) {
                               key={w.id}
                               name={w.name}
                               imageUrl={getImgUrl(w)}
+                              installed={installedNameSet.has(w.name.toLowerCase())}
                               loading={wcConnecting && selectedWallet?.id === w.id}
                               onClick={() => handleWalletClick(w)}
                             />
@@ -425,11 +550,12 @@ function WalletRow({
 // ─── Wallet Card (grid) ───────────────────────────────────────────────────────
 
 function WalletCard({
-  name, imageUrl, loading, onClick,
+  name, imageUrl, loading, installed, onClick,
 }: {
   name: string;
   imageUrl?: string;
   loading?: boolean;
+  installed?: boolean;
   onClick: () => void;
 }) {
   const short = name.length > 11 ? name.slice(0, 10) + '…' : name;
@@ -448,11 +574,26 @@ function WalletCard({
         ) : (
           <span className="text-white font-bold text-lg">{name[0]}</span>
         )}
+        {installed && !loading && (
+          <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-green-400 border-2 border-[#1c1c26]" />
+        )}
       </span>
       <span className="text-[11px] text-[#9b9bb8] group-hover:text-white transition-colors text-center leading-tight">
         {short}
       </span>
     </button>
+  );
+}
+
+// ─── WC Wallet Icon (for installed rows) ─────────────────────────────────────
+
+function WcWalletIcon({ wallet, getImgUrl }: { wallet: WCWallet; getImgUrl: (w: WCWallet) => string | undefined }) {
+  const url = getImgUrl(wallet);
+  return url ? (
+    <img src={url} alt={wallet.name} className="w-full h-full object-cover"
+      onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+  ) : (
+    <span className="text-white font-bold text-base">{wallet.name[0]}</span>
   );
 }
 

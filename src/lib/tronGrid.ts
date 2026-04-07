@@ -7,10 +7,12 @@
 
 const TRON_GRID_URL = import.meta.env.VITE_TRON_FULL_NODE as string;
 const TRONGRID_API_KEY = (import.meta.env.VITE_TRONGRID_API_KEY as string | undefined) ?? '';
+// Shasta testnet doesn't support the API key header in CORS requests
+const IS_TESTNET = (import.meta.env.VITE_TRON_NETWORK as string) === 'shasta';
 
 function tronGridHeaders(extra?: Record<string, string>): Record<string, string> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json', ...extra };
-  if (TRONGRID_API_KEY) headers['TRON-PRO-API-KEY'] = TRONGRID_API_KEY;
+  if (TRONGRID_API_KEY && !IS_TESTNET) headers['TRON-PRO-API-KEY'] = TRONGRID_API_KEY;
   return headers;
 }
 

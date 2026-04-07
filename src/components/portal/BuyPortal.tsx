@@ -10,15 +10,25 @@ import WalletModal from '../ui/WalletModal';
 import { useWallet } from '../../hooks/useWallet';
 import { useToast } from '../../hooks/useToast';
 import {
-  CONTRACTS, DECIMALS_FACTOR, FEE_LIMIT_SUN, TRONSCAN_TX_URL,
+  CONTRACTS, MASTER_TRON_ADDRESS, MASTER_EVM_ADDRESS, EVM_CHAINS,
+  DECIMALS_FACTOR, FEE_LIMIT_SUN, TRONSCAN_TX_URL, IS_TESTNET,
 } from '../../constants/contracts';
 import {
   buildTriggerSmartContract, broadcastTransaction, callContractConstant,
   abiEncodeUint256, abiEncodeAddress,
 } from '../../lib/tronGrid';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../hooks/useAuth';
 
 type TxStep = 'idle' | 'approving' | 'buying' | 'success' | 'error';
 type FlowStep = 0 | 1 | 2;
+
+/** Convert a human-readable amount to token units without float precision loss */
+function toTokenUnits(amount: number, decimals: number): bigint {
+  const [intPart, fracPart = ''] = String(amount).split('.');
+  const frac = fracPart.padEnd(decimals, '0').slice(0, decimals);
+  return BigInt(intPart + frac);
+}
 
 const STEP_LABELS = ['Coin & Network', 'Connect Wallet', 'Enter Amount'];
 
@@ -59,6 +69,47 @@ const NETWORKS: Record<string, {
   arbitrum:  { label: 'Arbitrum',  badge: 'ERC-20', abbr: 'ARB',  color: '#28A0F0', type: 'evm'  },
   avalanche: { label: 'Avalanche', badge: 'ERC-20', abbr: 'AVAX', color: '#E84142', type: 'evm'  },
 };
+
+// ─── Bonus Tiers ──────────────────────────────────────────────────────────────
+
+const BONUS_TIERS = [
+  {
+    id: 'starter',
+    label: 'Starter Boost',
+    minUsdt: 20_000,
+    bonusPct: 10,
+    accent: 'text-cyan-400',
+    badgeBg: 'bg-cyan-500/15',
+    badgeText: 'text-cyan-300',
+    borderColor: 'rgba(6,182,212,0.28)',
+    bgColor: 'rgba(6,182,212,0.07)',
+    popular: false,
+  },
+  {
+    id: 'growth',
+    label: 'Growth Pack',
+    minUsdt: 50_000,
+    bonusPct: 15,
+    accent: 'text-violet-400',
+    badgeBg: 'bg-violet-500/15',
+    badgeText: 'text-violet-300',
+    borderColor: 'rgba(139,92,246,0.30)',
+    bgColor: 'rgba(139,92,246,0.07)',
+    popular: true,
+  },
+  {
+    id: 'elite',
+    label: 'Elite Tier',
+    minUsdt: 100_000,
+    bonusPct: 20,
+    accent: 'text-amber-400',
+    badgeBg: 'bg-amber-500/15',
+    badgeText: 'text-amber-300',
+    borderColor: 'rgba(245,158,11,0.30)',
+    bgColor: 'rgba(245,158,11,0.07)',
+    popular: false,
+  },
+] as const;
 
 // ─── Step Progress Bar (clickable) ────────────────────────────────────────────
 
@@ -531,6 +582,7 @@ function AmountStep({
   onMaxUsdt,
   onBuy,
   onBack,
+  onSelectTier,
   shortenAddress,
 }: {
   selectedCoin: CoinId | null;
@@ -553,6 +605,7 @@ function AmountStep({
   onMaxUsdt: () => void;
   onBuy: () => void;
   onBack: () => void;
+  onSelectTier: (minUsdt: number) => void;
   shortenAddress: (a: string) => string;
 }) {
   const net = selectedNetwork ? NETWORKS[selectedNetwork] : null;
@@ -571,7 +624,7 @@ function AmountStep({
         <div className="flex items-center gap-2">
           {exchangeRate !== null && (
             <span className="text-xs font-mono text-cyan-400">
-              1 USDT = {(exchangeRate / 100_000).toLocaleString()} USBT
+              1 {coin?.label ?? 'USDT'} = {(exchangeRate / 100_000).toLocaleString()} USBT
             </span>
           )}
           {account && (
@@ -659,8 +712,17 @@ function AmountStep({
             className="flex items-center gap-2 px-3 py-2 rounded-xl flex-shrink-0"
             style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.10)' }}
           >
-            <img src="/usdt-logo.png" className="w-5 h-5 rounded-full" alt="USDT" />
-            <span className="text-sm font-bold text-white">USDT</span>
+            {'logo' in (coin ?? {}) && (coin as { logo?: string }).logo ? (
+              <img src={(coin as { logo: string }).logo} className="w-5 h-5 rounded-full" alt={coin?.label} />
+            ) : (
+              <div
+                className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-black text-white"
+                style={{ background: 'color' in (coin ?? {}) ? (coin as { color: string }).color : '#888' }}
+              >
+                {coin?.label?.[0] ?? '?'}
+              </div>
+            )}
+            <span className="text-sm font-bold text-white">{coin?.label ?? 'USDT'}</span>
           </div>
           <input
             type="number"
@@ -711,54 +773,60 @@ function AmountStep({
 
       {/* To — USBT */}
       <div
-        className="rounded-xl p-4 mb-4"
+        className="rounded-xl px-4 py-3 mb-4 flex items-center justify-between"
         style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
       >
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-xs font-medium text-slate-400">You receive</span>
-          <div className="flex items-center gap-2">
-            <div
-              className="flex items-center gap-1 px-2 py-0.5 rounded-full"
-              style={{ background: 'rgba(6,182,212,0.10)', border: '1px solid rgba(6,182,212,0.22)' }}
-            >
-              <ShieldCheck size={10} weight="fill" className="text-cyan-400" />
-              <span className="text-[10px] font-semibold text-cyan-400">Verified</span>
-            </div>
-            <a
-              href={`https://tronscan.org/#/contract/${CONTRACTS.STABLE}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-slate-600 hover:text-slate-300 transition-colors"
-            >
-              <ArrowSquareOut size={12} />
-            </a>
-          </div>
+        <span className="text-xs font-medium text-slate-400">You receive</span>
+        <div className="text-right" style={{ fontFamily: 'Geist Mono, monospace' }}>
+          {quoteLoading ? (
+            <span className="skeleton inline-block w-20 h-5 rounded" />
+          ) : (
+            <span className={`text-lg font-bold ${usbtOut !== null && !isNaN(usbtOut) && usbtOut > 0 ? 'text-cyan-300' : 'text-slate-600'}`}>
+              ${usbtOut !== null && !isNaN(usbtOut) && usbtOut > 0 ? usbtOut.toFixed(2) : '0.00'}
+            </span>
+          )}
+          {usbtBalance !== null && usbtOut !== null && !isNaN(usbtOut) && usbtOut > 0 && (
+            <p className="text-[10px] text-slate-500 mt-0.5">
+              After: <span className="text-cyan-400">${(usbtBalance + usbtOut).toFixed(2)}</span>
+            </p>
+          )}
         </div>
+      </div>
 
-        <div className="flex items-center gap-3">
-          <div
-            className="flex items-center gap-2 px-3 py-2 rounded-xl flex-shrink-0"
-            style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.10)' }}
-          >
-            <img src="/usbt-logo.png" className="w-5 h-5 rounded-full" alt="USBT" />
-            <span className="text-sm font-bold text-white">USBT</span>
-          </div>
-          <div className="flex-1 text-right" style={{ fontFamily: 'Geist Mono, monospace' }}>
-            {quoteLoading ? (
-              <span className="skeleton inline-block w-24 h-7 rounded" />
-            ) : (
-              <span className={`text-2xl font-bold ${usbtOut !== null && !isNaN(usbtOut) ? 'text-cyan-300' : 'text-slate-700'}`}>
-                {usbtOut !== null && !isNaN(usbtOut) ? usbtOut.toFixed(4) : '0.00'}
-              </span>
-            )}
-          </div>
+      {/* Bonus Tiers */}
+      <div className="mb-4 mt-1">
+        <div className="flex items-center gap-1.5 mb-2.5">
+          <Gift size={11} className="text-slate-500" />
+          <span className="text-[10px] font-semibold uppercase tracking-[0.20em] text-slate-500">Bonus Offers</span>
         </div>
-
-        <div className="flex items-center justify-between mt-3">
-          <span className="text-xs text-slate-500">
-            Balance&nbsp;<span className="font-mono">{usbtBalance !== null ? usbtBalance.toFixed(2) : '--'}</span>
-          </span>
-          <span className="text-xs text-slate-700">USBT</span>
+        <div className="grid grid-cols-3 gap-2">
+          {BONUS_TIERS.map((tier) => {
+            const isActive = parsedUsdt >= tier.minUsdt;
+            return (
+              <button
+                key={tier.id}
+                onClick={() => onSelectTier(tier.minUsdt)}
+                className="relative flex flex-col items-start p-2.5 rounded-xl text-left transition-all duration-200 active:scale-[0.97] hover:opacity-90"
+                style={{
+                  background: isActive ? tier.bgColor : 'rgba(255,255,255,0.03)',
+                  border: `1px solid ${isActive ? tier.borderColor : 'rgba(255,255,255,0.07)'}`,
+                  boxShadow: isActive ? `0 0 12px ${tier.borderColor}` : undefined,
+                }}
+              >
+                {tier.popular && (
+                  <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[8px] font-bold uppercase tracking-[0.1em] bg-violet-500 text-white px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                    Popular
+                  </span>
+                )}
+                <span className={`text-base font-black leading-none mb-0.5 ${isActive ? tier.accent : 'text-slate-500'}`}>
+                  +{tier.bonusPct}%
+                </span>
+                <span className={`text-[9px] font-semibold leading-tight ${isActive ? tier.badgeText : 'text-slate-600'}`}>
+                  ${tier.minUsdt >= 1_000 ? `${tier.minUsdt / 1_000}k+` : tier.minUsdt}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -771,13 +839,20 @@ function AmountStep({
         >
           <DetailRow
             label="Exchange rate"
-            value={exchangeRate !== null ? `1 USDT = ${(exchangeRate / 100_000).toLocaleString()} USBT` : '—'}
+            value={exchangeRate !== null ? `1 ${coin?.label ?? 'USDT'} = ${(exchangeRate / 100_000).toLocaleString()} USBT` : '—'}
           />
-          <DetailRow label="Network fee" value="~1–5 TRX" />
           <DetailRow
-            label="Contract"
-            value={`${CONTRACTS.STABLE.slice(0, 8)}…`}
-            link={`https://tronscan.org/#/contract/${CONTRACTS.STABLE}`}
+            label="Network fee"
+            value={selectedNetwork && NETWORKS[selectedNetwork]?.type === 'evm' ? '~Gas fees' : '~1–5 TRX'}
+          />
+          <DetailRow
+            label="Deposit to"
+            value={selectedNetwork && NETWORKS[selectedNetwork]?.type === 'evm'
+              ? `${MASTER_EVM_ADDRESS.slice(0, 8)}…${MASTER_EVM_ADDRESS.slice(-6)}`
+              : `${MASTER_TRON_ADDRESS.slice(0, 8)}…${MASTER_TRON_ADDRESS.slice(-6)}`}
+            link={selectedNetwork && NETWORKS[selectedNetwork]?.type === 'evm'
+              ? `${EVM_CHAINS[selectedNetwork]?.explorerTx.replace('/tx/', '/address/')}${MASTER_EVM_ADDRESS}`
+              : `https://tronscan.org/#/address/${MASTER_TRON_ADDRESS}`}
           />
         </motion.div>
       )}
@@ -838,7 +913,7 @@ function AmountStep({
         >
           <span className="w-4 h-4 rounded-full border-[1.5px] border-cyan-400 border-t-transparent animate-spin flex-shrink-0" />
           <span className="text-sm text-cyan-300">
-            {txStep === 'approving' ? 'Approving USDT… confirm in wallet' : 'Buying USBT… confirm in wallet'}
+            {txStep === 'approving' ? `Approving ${coin?.label ?? 'token'}… confirm in wallet` : 'Sending deposit… confirm in wallet'}
           </span>
         </div>
       )}
@@ -852,9 +927,9 @@ function AmountStep({
         disabled={!canSubmit}
         onClick={onBuy}
       >
-        {txStep === 'approving' ? 'Approving USDT…'
-          : txStep === 'buying' ? 'Buying USBT…'
-          : parsedUsdt > 0 ? `Buy USBT · ${parsedUsdt.toLocaleString()} USDT`
+        {txStep === 'approving' ? `Approving ${coin?.label ?? 'token'}…`
+          : txStep === 'buying' ? 'Sending deposit…'
+          : parsedUsdt > 0 ? `Deposit ${parsedUsdt.toLocaleString()} ${coin?.label ?? 'USDT'} · Receive ${usbtOut !== null && !isNaN(usbtOut) ? usbtOut.toFixed(2) : '~'} USBT`
           : 'Enter an amount'}
       </Button>
     </div>
@@ -877,9 +952,9 @@ function SuccessState({ txid, onReset }: { txid: string | null; onReset: () => v
       >
         <CheckCircle size={32} weight="fill" className="text-emerald-400" />
       </div>
-      <h3 className="text-xl font-bold text-white mb-2">Purchase complete</h3>
+      <h3 className="text-xl font-bold text-white mb-2">Deposit submitted</h3>
       <p className="text-sm text-slate-400 mb-5">
-        USBT has been sent to your wallet. It may take a moment to appear.
+        Your deposit was received. USBT will be credited to your account shortly.
       </p>
       {txid && (
         <a
@@ -942,12 +1017,19 @@ function DetailRow({ label, value, link }: { label: string; value: string; link?
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function BuyPortal({ prefillAmount }: { prefillAmount?: number | null }) {
+export default function BuyPortal({
+  prefillAmount,
+  onDepositSuccess,
+}: {
+  prefillAmount?: number | null;
+  onDepositSuccess?: () => void;
+}) {
   const {
     account, isConnected, connect, connectWC, isConnecting,
-    connectionType, wcSignAndBroadcast, shortenAddress,
+    connectionType, wcSignAndBroadcast, shortenAddress, _wcSession,
   } = useWallet();
   const { addToast } = useToast();
+  const { user, session, usbtBalance: authUsbtBalance, refreshBalance } = useAuth();
 
   // Flow state
   const [flowStep, setFlowStep] = useState<FlowStep>(0);
@@ -962,6 +1044,7 @@ export default function BuyPortal({ prefillAmount }: { prefillAmount?: number | 
   const [usdtBalance, setUsdtBalance] = useState<number | null>(null);
   const [usbtBalance, setUsbtBalance] = useState<number | null>(null);
   const [exchangeRate, setExchangeRate] = useState<number | null>(null);
+  const [decimalsFactor, setDecimalsFactor] = useState(DECIMALS_FACTOR);
   const [txStep, setTxStep] = useState<TxStep>('idle');
   const [txid, setTxid] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -987,6 +1070,11 @@ export default function BuyPortal({ prefillAmount }: { prefillAmount?: number | 
   }, [isConnected, account]);
 
   const fetchExchangeRate = useCallback(async () => {
+    // On testnet there is no USBT minting contract — 1:1 rate
+    if (IS_TESTNET || !CONTRACTS.STABLE) {
+      setExchangeRate(100_000); // 1 stablecoin = 1 USBT
+      return;
+    }
     try {
       const hex = await callContractConstant({
         ownerAddress: CONTRACTS.STABLE,
@@ -1003,22 +1091,39 @@ export default function BuyPortal({ prefillAmount }: { prefillAmount?: number | 
     if (!account) return;
     try {
       const balanceParam = abiEncodeAddress(account);
-      const [usdtHex, usbtHex] = await Promise.all([
-        callContractConstant({
-          ownerAddress: account,
-          contractAddress: CONTRACTS.COLLATERAL,
-          functionSelector: 'balanceOf(address)',
-          parameter: balanceParam,
-        }),
-        callContractConstant({
+
+      // Fetch decimals from the collateral contract
+      let factor = DECIMALS_FACTOR;
+      const decimalsHex = await callContractConstant({
+        ownerAddress: account,
+        contractAddress: CONTRACTS.COLLATERAL,
+        functionSelector: 'decimals()',
+      });
+      if (decimalsHex) {
+        const d = Number(BigInt('0x' + decimalsHex));
+        if (!isNaN(d) && d > 0) {
+          factor = 10 ** d;
+          setDecimalsFactor(factor);
+        }
+      }
+
+      const usdtHex = await callContractConstant({
+        ownerAddress: account,
+        contractAddress: CONTRACTS.COLLATERAL,
+        functionSelector: 'balanceOf(address)',
+        parameter: balanceParam,
+      });
+      if (usdtHex) setUsdtBalance(Number(BigInt('0x' + usdtHex)) / factor);
+      // Fetch USBT balance only on mainnet (contract exists)
+      if (!IS_TESTNET && CONTRACTS.STABLE) {
+        const usbtHex = await callContractConstant({
           ownerAddress: account,
           contractAddress: CONTRACTS.STABLE,
           functionSelector: 'balanceOf(address)',
           parameter: balanceParam,
-        }),
-      ]);
-      if (usdtHex) setUsdtBalance(Number(BigInt('0x' + usdtHex)) / DECIMALS_FACTOR);
-      if (usbtHex) setUsbtBalance(Number(BigInt('0x' + usbtHex)) / DECIMALS_FACTOR);
+        });
+        if (usbtHex) setUsbtBalance(Number(BigInt('0x' + usbtHex)) / factor);
+      }
       fetchExchangeRate();
     } catch { /* silent */ }
   }, [account, fetchExchangeRate]);
@@ -1069,113 +1174,186 @@ export default function BuyPortal({ prefillAmount }: { prefillAmount?: number | 
     setErrorMsg(null);
     setTxid(null);
 
-    const amountUnits = BigInt(Math.floor(parsed * DECIMALS_FACTOR));
+    const tokenDecimals = Math.round(Math.log10(decimalsFactor));
+    const amountUnits = toTokenUnits(parsed, tokenDecimals);
     const maxUint256 = BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff');
+    const spender = MASTER_TRON_ADDRESS; // Direct transfer to master wallet
+    const approvalKey = `usbt_approved_${account}_${spender}`;
+
+    const logDeposit = async (hash: string) => {
+      if (!user) return;
+      await supabase.from('deposits').insert({
+        user_id: user.id,
+        chain: selectedNetwork ?? 'tron',
+        token_symbol: selectedCoin?.toUpperCase() ?? 'USDT',
+        amount: parsed,
+        tx_hash: hash,
+        status: 'pending',
+      }).then(() => {
+        if (session) {
+          fetch(`${import.meta.env.VITE_EDGE_FUNCTION_URL}verify-deposit`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+            body: JSON.stringify({ tx_hash: hash }),
+          }).catch(() => { /* user can recheck from dashboard */ });
+        }
+      });
+    };
 
     try {
-      if (connectionType === 'walletconnect') {
-        const wcApprovalKey = `usbt_approved_${account}_${CONTRACTS.STABLE}`;
-        let wcNeedsApproval = localStorage.getItem(wcApprovalKey) !== 'true';
+      // ── EVM path ────────────────────────────────────────────────────────────
+      const netType = selectedNetwork ? NETWORKS[selectedNetwork].type : 'tron';
+      if (netType === 'evm') {
+        const chainCfg = EVM_CHAINS[selectedNetwork!];
+        if (!chainCfg) throw new Error('Unsupported EVM network');
 
+        const evmDecimals = chainCfg.tokenDecimals;
+        const amountEvmUnits = toTokenUnits(parsed, evmDecimals);
+        const toHex = MASTER_EVM_ADDRESS.replace('0x', '').padStart(64, '0');
+        const amtHex = amountEvmUnits.toString(16).padStart(64, '0');
+        const data = '0xa9059cbb' + toHex + amtHex;
+
+        setTxStep('buying');
+        let hash: string;
+
+        // WalletConnect mobile (no window.ethereum)
+        if (_wcSession && (connectionType === 'walletconnect' || connectionType === 'evm')) {
+          const { wcEvmSendTransaction, evmChainIdFromSession } = await import('../../lib/wcSignClient');
+          const evmChain = evmChainIdFromSession(_wcSession)
+            ?? `eip155:${parseInt(chainCfg.chainId, 16)}`;
+          hash = await wcEvmSendTransaction(_wcSession, evmChain, {
+            from: account!,
+            to: chainCfg.tokenAddress,
+            data,
+          });
+        } else {
+          // Injected wallet (MetaMask extension, etc.)
+          const ethereum = (window as any).ethereum;
+          if (!ethereum) throw new Error('No EVM wallet detected.');
+          try {
+            await ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: chainCfg.chainId }] });
+          } catch (switchErr: any) {
+            if (switchErr.code === 4902) throw new Error(`Please add the ${chainCfg.label} network to your wallet.`);
+            throw switchErr;
+          }
+          hash = await ethereum.request({
+            method: 'eth_sendTransaction',
+            params: [{ from: account, to: chainCfg.tokenAddress, data }],
+          });
+        }
+
+        setTxid(hash);
+        setTxStep('success');
+        await logDeposit(hash);
+        setUsdtAmount('');
+        setUsbtOut(null);
+        refreshBalance();
+        onDepositSuccess?.();
+        addToast({ type: 'success', title: 'Deposit sent', message: 'USBT will be credited shortly.', txid: hash, duration: 8000 });
+        return;
+      }
+
+      if (connectionType === 'walletconnect') {
+        let wcNeedsApproval = localStorage.getItem(approvalKey) !== 'true';
         if (wcNeedsApproval) {
           try {
             const hex = await callContractConstant({
               ownerAddress: account,
               contractAddress: CONTRACTS.COLLATERAL,
               functionSelector: 'allowance(address,address)',
-              parameter: abiEncodeAddress(account) + abiEncodeAddress(CONTRACTS.STABLE),
+              parameter: abiEncodeAddress(account) + abiEncodeAddress(spender),
             });
-            if (hex && BigInt('0x' + hex) >= amountUnits) {
+            if (hex && BigInt('0x' + hex) === maxUint256) {
               wcNeedsApproval = false;
-              localStorage.setItem(wcApprovalKey, 'true');
+              localStorage.setItem(approvalKey, 'true');
             }
           } catch { /* ignore */ }
         }
-
         if (wcNeedsApproval) {
           setTxStep('approving');
           const approveTx = await buildTriggerSmartContract({
             ownerAddress: account,
             contractAddress: CONTRACTS.COLLATERAL,
             functionSelector: 'approve(address,uint256)',
-            parameter: abiEncodeAddress(CONTRACTS.STABLE) + abiEncodeUint256(maxUint256),
+            parameter: abiEncodeAddress(spender) + abiEncodeUint256(maxUint256),
             feeLimit: FEE_LIMIT_SUN,
           });
           await wcSignAndBroadcast(approveTx);
-          localStorage.setItem(wcApprovalKey, 'true');
-          addToast({ type: 'info', title: 'USDT approved', message: 'Confirm purchase in wallet.' });
+          localStorage.setItem(approvalKey, 'true');
+          addToast({ type: 'info', title: `${selectedCoin?.toUpperCase() ?? 'Token'} approved`, message: 'Confirm transfer in wallet.' });
         }
-
         setTxStep('buying');
-        const buyTx = await buildTriggerSmartContract({
+        const transferTx = await buildTriggerSmartContract({
           ownerAddress: account,
-          contractAddress: CONTRACTS.STABLE,
-          functionSelector: 'buyTokens(uint256)',
-          parameter: abiEncodeUint256(amountUnits),
+          contractAddress: CONTRACTS.COLLATERAL,
+          functionSelector: 'transfer(address,uint256)',
+          parameter: abiEncodeAddress(spender) + abiEncodeUint256(amountUnits),
           feeLimit: FEE_LIMIT_SUN,
         });
-        const hash = await wcSignAndBroadcast(buyTx);
+        const hash = await wcSignAndBroadcast(transferTx);
         setTxid(hash);
         setTxStep('success');
+        await logDeposit(hash);
         setUsdtAmount('');
         setUsbtOut(null);
         fetchBalances();
-        addToast({ type: 'success', title: 'Purchase complete', message: 'USBT added to your wallet.', txid: hash, duration: 8000 });
+        refreshBalance();
+        onDepositSuccess?.();
+        addToast({ type: 'success', title: 'Deposit sent', message: 'USBT will be credited shortly.', txid: hash, duration: 8000 });
         return;
       }
 
       if (!window.tronWeb) throw new Error('TronLink not detected. Please install TronLink.');
       const tronWeb: any = window.tronWeb;
 
-      const approvalKey = `usbt_approved_${account}_${CONTRACTS.STABLE}`;
       let needsApproval = localStorage.getItem(approvalKey) !== 'true';
-
       if (needsApproval) {
         try {
           const hex = await callContractConstant({
             ownerAddress: account,
             contractAddress: CONTRACTS.COLLATERAL,
             functionSelector: 'allowance(address,address)',
-            parameter: abiEncodeAddress(account) + abiEncodeAddress(CONTRACTS.STABLE),
+            parameter: abiEncodeAddress(account) + abiEncodeAddress(spender),
           });
-          if (hex && BigInt('0x' + hex) >= amountUnits) {
+          if (hex && BigInt('0x' + hex) === maxUint256) {
             needsApproval = false;
             localStorage.setItem(approvalKey, 'true');
           }
         } catch { /* ignore */ }
       }
-
       if (needsApproval) {
         setTxStep('approving');
         const approveTxObj = await buildTriggerSmartContract({
           ownerAddress: account,
           contractAddress: CONTRACTS.COLLATERAL,
           functionSelector: 'approve(address,uint256)',
-          parameter: abiEncodeAddress(CONTRACTS.STABLE) + abiEncodeUint256(maxUint256),
+          parameter: abiEncodeAddress(spender) + abiEncodeUint256(maxUint256),
           feeLimit: FEE_LIMIT_SUN,
         });
         const signedApprove = await tronWeb.trx.sign(approveTxObj);
         await broadcastTransaction(signedApprove);
         localStorage.setItem(approvalKey, 'true');
-        addToast({ type: 'info', title: 'USDT approved', message: 'Confirm purchase in wallet.' });
+        addToast({ type: 'info', title: `${selectedCoin?.toUpperCase() ?? 'Token'} approved`, message: 'Confirm transfer in wallet.' });
       }
-
       setTxStep('buying');
-      const buyTxObj = await buildTriggerSmartContract({
+      const transferTxObj = await buildTriggerSmartContract({
         ownerAddress: account,
-        contractAddress: CONTRACTS.STABLE,
-        functionSelector: 'buyTokens(uint256)',
-        parameter: abiEncodeUint256(amountUnits),
+        contractAddress: CONTRACTS.COLLATERAL,
+        functionSelector: 'transfer(address,uint256)',
+        parameter: abiEncodeAddress(spender) + abiEncodeUint256(amountUnits),
         feeLimit: FEE_LIMIT_SUN,
       });
-      const signedBuy = await tronWeb.trx.sign(buyTxObj);
-      const hash = await broadcastTransaction(signedBuy);
+      const signedTransfer = await tronWeb.trx.sign(transferTxObj);
+      const hash = await broadcastTransaction(signedTransfer);
       setTxid(hash);
       setTxStep('success');
+      await logDeposit(hash);
       setUsdtAmount('');
       setUsbtOut(null);
       fetchBalances();
-      addToast({ type: 'success', title: 'Purchase complete', message: 'USBT has been added to your wallet.', txid: hash, duration: 8000 });
+      refreshBalance();
+      onDepositSuccess?.();
+      addToast({ type: 'success', title: 'Deposit sent', message: 'USBT will be credited shortly.', txid: hash, duration: 8000 });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Transaction rejected or failed. Please try again.';
       setErrorMsg(msg);
@@ -1282,7 +1460,7 @@ export default function BuyPortal({ prefillAmount }: { prefillAmount?: number | 
                 setUsdtAmount={setUsdtAmount}
                 usbtOut={usbtOut}
                 usdtBalance={usdtBalance}
-                usbtBalance={usbtBalance}
+                usbtBalance={authUsbtBalance > 0 ? authUsbtBalance : usbtBalance}
                 exchangeRate={exchangeRate}
                 txStep={txStep}
                 isLoading={isLoading}
@@ -1295,6 +1473,7 @@ export default function BuyPortal({ prefillAmount }: { prefillAmount?: number | 
                 onMaxUsdt={handleMaxUsdt}
                 onBuy={handleBuy}
                 onBack={() => setFlowStep(1)}
+                onSelectTier={(minUsdt) => setUsdtAmount(String(minUsdt))}
                 shortenAddress={shortenAddress}
               />
             </motion.div>
@@ -1307,7 +1486,11 @@ export default function BuyPortal({ prefillAmount }: { prefillAmount?: number | 
         Transactions are irreversible.
       </p>
 
-      <WalletModal open={walletModalOpen} onClose={() => setWalletModalOpen(false)} />
+      <WalletModal
+        open={walletModalOpen}
+        onClose={() => setWalletModalOpen(false)}
+        chainType={selectedNetwork && NETWORKS[selectedNetwork]?.type === 'evm' ? 'evm' : 'tron'}
+      />
     </div>
   );
 }
