@@ -67,10 +67,13 @@ export async function wcConnect(chainType: 'tron' | 'evm' = 'tron'): Promise<{
  * Signs a TRON transaction via an active WalletConnect session.
  * Returns the signed transaction object ready to broadcast.
  *
- * The Tron WalletConnect spec uses params as [tx] (array).
- * We strip `visible: true` before sending because some wallets (Trust Wallet)
- * fail to parse the base58 addresses that TronGrid includes when visible=true.
- * The wallet only needs raw_data_hex to compute the signature.
+ * Params format follows @tronweb3/walletconnect-tron (the official Tron WC adapter):
+ *   - v2 (default): { address, transaction: { transaction: rawTx } }
+ *   - v1 (legacy):  { address, transaction: rawTx }
+ *     determined by session.sessionProperties?.tron_method_version === 'v1'
+ *
+ * The wallet signs raw_data_hex; we strip `visible` to avoid base58 address
+ * confusion in wallets that expect hex-format raw_data.
  */
 export async function wcSignTx(
   session: SessionTypes.Struct,
@@ -78,16 +81,32 @@ export async function wcSignTx(
 ): Promise<object> {
   const client = await getSignClient();
 
-  // Strip the `visible` flag — it causes base58 addresses in raw_data which
-  // Trust Wallet's parser can't handle. The signing only uses raw_data_hex.
-  const { visible: _visible, ...txForWallet } = unsignedTx as Record<string, unknown>;
+  // Tron address from session (CAIP-10: "tron:chainId:TAddress")
+  const tronAccounts = session.namespaces?.tron?.accounts ?? [];
+  const address = tronAccounts[0]?.split(':')[2] ?? '';
 
-  const signed = await client.request<object>({
+  // Use the actual chain ID from the approved session (avoids chain-ID mismatch)
+  const chainId = tronAccounts[0]?.split(':').slice(0, 2).join(':') ?? TRON_CHAIN;
+
+  // Strip `visible` — base58 addresses in raw_data confuse some wallet parsers
+  const { visible: _visible, ...tx } = unsignedTx as Record<string, unknown>;
+
+  // v1 wallets use flat { address, transaction: tx }
+  // v2 wallets (default) wrap: { address, transaction: { transaction: tx } }
+  const sessionProps = (session as any).sessionProperties;
+  const isV1 = sessionProps?.tron_method_version === 'v1';
+  const params = isV1
+    ? { address, transaction: tx }
+    : { address, transaction: { transaction: tx } };
+
+  const result = await client.request<any>({
     topic: session.topic,
-    chainId: TRON_CHAIN,
-    request: { method: 'tron_signTransaction', params: [txForWallet] },
+    chainId,
+    request: { method: 'tron_signTransaction', params },
   });
-  return signed;
+
+  // Official adapter returns result.result when present, otherwise result
+  return result?.result ?? result;
 }
 
 /**
