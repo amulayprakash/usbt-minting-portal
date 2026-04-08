@@ -776,7 +776,10 @@ function AmountStep({
         className="rounded-xl px-4 py-3 mb-4 flex items-center justify-between"
         style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
       >
-        <span className="text-xs font-medium text-slate-400">You receive</span>
+        <div className="flex items-center gap-1.5">
+          <img src="/usbt-logo.png" alt="USBT" className="w-5 h-5 rounded-full" />
+          <span className="text-xs font-medium text-slate-400">USBT</span>
+        </div>
         <div className="text-right" style={{ fontFamily: 'Geist Mono, monospace' }}>
           {quoteLoading ? (
             <span className="skeleton inline-block w-20 h-5 rounded" />
