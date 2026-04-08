@@ -1084,7 +1084,7 @@ export default function BuyPortal({
   useEffect(() => {
     if (!isConnected || !account) return;
     fetchBalances();
-  }, [isConnected, account]);
+  }, [isConnected, account, selectedNetwork, fetchBalances]);
 
   const fetchExchangeRate = useCallback(async () => {
     // On testnet there is no USBT minting contract — 1:1 rate
@@ -1108,7 +1108,8 @@ export default function BuyPortal({
     if (!account) return;
 
     // ── EVM path — fetch balance via public RPC ────────────────────────────
-    if (connectionType === 'evm') {
+    const netType = selectedNetwork ? NETWORKS[selectedNetwork]?.type : 'tron';
+    if (netType === 'evm') {
       try {
         if (!selectedNetwork) return;
         const chainCfg = EVM_CHAINS[selectedNetwork];
