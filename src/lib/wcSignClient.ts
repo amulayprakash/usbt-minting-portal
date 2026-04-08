@@ -64,16 +64,26 @@ export async function wcConnect(chainType: 'tron' | 'evm' = 'tron'): Promise<{
 /**
  * Signs a TRON transaction via an active WalletConnect session.
  * Returns the signed transaction object ready to broadcast.
+ *
+ * Trust Wallet expects params as { transaction: tx } (object),
+ * while most other wallets (TronLink WC, etc.) use [tx] (array).
  */
 export async function wcSignTx(
   session: SessionTypes.Struct,
   unsignedTx: object,
 ): Promise<object> {
   const client = await getSignClient();
+  const walletName = (session.peer?.metadata?.name ?? '').toLowerCase();
+  const isTrustWallet = walletName.includes('trust');
+
+  const params = isTrustWallet
+    ? { transaction: unsignedTx }
+    : [unsignedTx];
+
   const signed = await client.request<object>({
     topic: session.topic,
     chainId: TRON_CHAIN,
-    request: { method: 'tron_signTransaction', params: [unsignedTx] },
+    request: { method: 'tron_signTransaction', params },
   });
   return signed;
 }
