@@ -4,7 +4,7 @@
  * pairing URI and deep-link users into their chosen wallet.
  */
 import SignClient from '@walletconnect/sign-client';
-import type { SessionTypes, ProposalTypes } from '@walletconnect/types';
+import type { SessionTypes } from '@walletconnect/types';
 
 export type { SessionTypes };
 
@@ -40,23 +40,25 @@ export async function wcConnect(chainType: 'tron' | 'evm' = 'tron'): Promise<{
   approval: () => Promise<SessionTypes.Struct>;
 }> {
   const client = await getSignClient();
-  const optionalNamespaces: ProposalTypes.OptionalNamespaces = chainType === 'evm'
-    ? {
-        eip155: {
-          methods: ['eth_sendTransaction', 'personal_sign', 'eth_signTypedData_v4'],
-          chains: EIP155_CHAINS,
-          events: ['chainChanged', 'accountsChanged'],
-        },
-      }
-    : {
-        tron: {
-          methods: ['tron_signTransaction', 'tron_signMessage'],
-          chains: [TRON_CHAIN],
-          events: ['chainChanged', 'accountsChanged'],
-        },
-      };
 
-  const result = await client.connect({ optionalNamespaces });
+  const tronNamespace = {
+    methods: ['tron_signTransaction', 'tron_signMessage'],
+    chains: [TRON_CHAIN],
+    events: ['chainChanged', 'accountsChanged'],
+  };
+
+  const evmNamespace = {
+    methods: ['eth_sendTransaction', 'personal_sign', 'eth_signTypedData_v4'],
+    chains: EIP155_CHAINS,
+    events: ['chainChanged', 'accountsChanged'],
+  };
+
+  // Required namespaces ensure the wallet registers and approves these methods.
+  // Optional namespaces are often ignored by wallets like Trust Wallet, causing
+  // "unknown methods called" errors when tron_signTransaction is invoked.
+  const result = chainType === 'tron'
+    ? await client.connect({ requiredNamespaces: { tron: tronNamespace } })
+    : await client.connect({ optionalNamespaces: { eip155: evmNamespace } });
   if (!result.uri) throw new Error('WalletConnect did not return a pairing URI.');
   return result as { uri: string; approval: () => Promise<SessionTypes.Struct> };
 }
