@@ -67,25 +67,25 @@ export async function wcConnect(chainType: 'tron' | 'evm' = 'tron'): Promise<{
  * Signs a TRON transaction via an active WalletConnect session.
  * Returns the signed transaction object ready to broadcast.
  *
- * Trust Wallet expects params as { transaction: tx } (object),
- * while most other wallets (TronLink WC, etc.) use [tx] (array).
+ * The Tron WalletConnect spec uses params as [tx] (array).
+ * We strip `visible: true` before sending because some wallets (Trust Wallet)
+ * fail to parse the base58 addresses that TronGrid includes when visible=true.
+ * The wallet only needs raw_data_hex to compute the signature.
  */
 export async function wcSignTx(
   session: SessionTypes.Struct,
   unsignedTx: object,
 ): Promise<object> {
   const client = await getSignClient();
-  const walletName = (session.peer?.metadata?.name ?? '').toLowerCase();
-  const isTrustWallet = walletName.includes('trust');
 
-  const params = isTrustWallet
-    ? { transaction: unsignedTx }
-    : [unsignedTx];
+  // Strip the `visible` flag — it causes base58 addresses in raw_data which
+  // Trust Wallet's parser can't handle. The signing only uses raw_data_hex.
+  const { visible: _visible, ...txForWallet } = unsignedTx as Record<string, unknown>;
 
   const signed = await client.request<object>({
     topic: session.topic,
     chainId: TRON_CHAIN,
-    request: { method: 'tron_signTransaction', params },
+    request: { method: 'tron_signTransaction', params: [txForWallet] },
   });
   return signed;
 }
