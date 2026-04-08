@@ -9,6 +9,7 @@ import {
   useEffect,
   useCallback,
   useRef,
+  Component,
   type ReactNode,
 } from 'react';
 import { AnimatePresence } from 'framer-motion';
@@ -26,6 +27,34 @@ import { WalletContext, type WalletContextValue, type ConnectionType } from './h
 import { ThemeProvider } from './hooks/useTheme';
 import { broadcastTransaction } from './lib/tronGrid';
 import { wcConnect, wcSignTx, wcDisconnect, tronAddressFromSession } from './lib/wcSignClient';
+
+// ─── Error Boundary ───────────────────────────────────────────────────────────
+
+class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() { return { hasError: true }; }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-[100dvh] flex flex-col items-center justify-center gap-4 px-4 text-center">
+          <p className="text-base font-semibold text-white">Something went wrong.</p>
+          <p className="text-sm text-slate-500">Please refresh the page to try again.</p>
+          <button
+            onClick={() => { this.setState({ hasError: false }); window.location.reload(); }}
+            className="px-5 py-2 rounded-full text-sm font-semibold text-white"
+            style={{ background: 'rgba(6,182,212,0.18)', border: '1px solid rgba(6,182,212,0.35)' }}
+          >
+            Reload
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // ─── Wallet Provider ──────────────────────────────────────────────────────────
 
@@ -305,21 +334,23 @@ function AnimatedRoutes() {
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <WalletProvider>
-          <ToastProvider>
-            <BrowserRouter>
-              <ScrollToTop />
-              <AnimatedBackground />
-              <div className="noise-overlay" aria-hidden />
-              <Navbar />
-              <AnimatedRoutes />
-              <Footer />
-            </BrowserRouter>
-          </ToastProvider>
-        </WalletProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <AuthProvider>
+          <WalletProvider>
+            <ToastProvider>
+              <BrowserRouter>
+                <ScrollToTop />
+                <AnimatedBackground />
+                <div className="noise-overlay" aria-hidden />
+                <Navbar />
+                <AnimatedRoutes />
+                <Footer />
+              </BrowserRouter>
+            </ToastProvider>
+          </WalletProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }

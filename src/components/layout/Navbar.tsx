@@ -224,12 +224,7 @@ export default function Navbar() {
                 onClick={signInWithGoogle}
                 whileTap={{ scale: 0.92 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                className={clsx(
-                  'hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all duration-300',
-                  isDark
-                    ? 'bg-white/[0.05] border-white/[0.10] text-white hover:bg-white/[0.09]'
-                    : 'bg-black/[0.05] border-black/[0.09] text-slate-700 hover:bg-black/[0.09]'
-                )}
+                className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all duration-300 bg-cyan-500/[0.15] border-cyan-500/[0.40] text-cyan-400 hover:bg-cyan-500/[0.28] hover:border-cyan-400/[0.65] hover:text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.18)]"
               >
                 <User size={12} weight="bold" />
                 Sign in
@@ -352,7 +347,7 @@ export default function Navbar() {
                 ) : (
                   <button
                     onClick={signInWithGoogle}
-                    className="text-2xl font-semibold text-slate-400 dark:text-[#6a6a8a] hover:text-slate-900 dark:hover:text-white transition-colors"
+                    className="text-2xl font-semibold text-cyan-400 hover:text-cyan-300 transition-colors"
                   >
                     Sign in
                   </button>

@@ -408,7 +408,7 @@ function MobileTab({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function Buy() {
-  const { user, signInWithGoogle } = useAuth();
+  const { user, signInWithGoogle, isLoading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<ActiveTab>('buy');
   const [prefillAmount, setPrefillAmount] = useState<number | null>(null);
   const [depositSignal, setDepositSignal] = useState(0);
@@ -623,7 +623,19 @@ export default function Buy() {
             </motion.div>
 
             {/* Portal */}
-            {!user ? (
+            {authLoading ? (
+              <div
+                className="relative rounded-3xl border border-white/[0.07] overflow-hidden"
+                style={{ background: 'rgba(255,255,255,0.02)', minHeight: 220 }}
+              >
+                <div className="p-6 space-y-3 animate-pulse">
+                  <div className="h-12 rounded-2xl bg-white/[0.05]" />
+                  <div className="h-10 rounded-xl bg-white/[0.04]" />
+                  <div className="h-10 rounded-xl bg-white/[0.04]" />
+                  <div className="h-12 rounded-2xl bg-white/[0.04]" />
+                </div>
+              </div>
+            ) : !user ? (
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
