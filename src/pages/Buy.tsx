@@ -4,12 +4,13 @@ import { motion, AnimatePresence, useInView } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import {
   ArrowLeft, DownloadSimple, PaperPlaneTilt, ShieldCheck, ArrowSquareOut,
-  Star, Lightning, Crown, CaretLeft, CaretRight, Gift,
+  Star, Lightning, Crown, CaretLeft, CaretRight, Gift, GoogleLogo,
 } from '@phosphor-icons/react';
 import BuyPortal from '../components/portal/BuyPortal';
 import WithdrawPanel from '../components/portal/WithdrawPanel';
 import PendingDeposits from '../components/portal/PendingDeposits';
 import { CONTRACTS, TRONSCAN_CONTRACT_URL } from '../constants/contracts';
+import { useAuth } from '../hooks/useAuth';
 
 type ActiveTab = 'buy' | 'withdraw';
 
@@ -407,6 +408,7 @@ function MobileTab({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function Buy() {
+  const { user, signInWithGoogle } = useAuth();
   const [activeTab, setActiveTab] = useState<ActiveTab>('buy');
   const [prefillAmount, setPrefillAmount] = useState<number | null>(null);
   const [depositSignal, setDepositSignal] = useState(0);
@@ -621,35 +623,77 @@ export default function Buy() {
             </motion.div>
 
             {/* Portal */}
-            <AnimatePresence mode="wait">
-              {activeTab === 'buy' ? (
-                <motion.div
-                  key="buy-portal"
-                  ref={portalRef}
-                  initial={{ opacity: 0, x: -12 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 12 }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                >
-                  <BuyPortal
-                    prefillAmount={prefillAmount}
-                    onDepositSuccess={() => setDepositSignal(s => s + 1)}
-                  />
-                  <PendingDeposits refreshSignal={depositSignal} />
-                  <BuyOverview />
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="withdraw-panel"
-                  initial={{ opacity: 0, x: 12 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -12 }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                >
-                  <WithdrawPanel />
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {!user ? (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ type: 'spring', stiffness: 280, damping: 28 }}
+                className="relative rounded-3xl border border-white/[0.07] overflow-hidden"
+                style={{ background: 'rgba(255,255,255,0.02)' }}
+              >
+                {/* Blurred portal preview */}
+                <div className="pointer-events-none select-none blur-sm opacity-30 p-6">
+                  <div className="h-12 rounded-2xl bg-white/[0.06] mb-4" />
+                  <div className="h-10 rounded-xl bg-white/[0.04] mb-3" />
+                  <div className="h-10 rounded-xl bg-white/[0.04] mb-3" />
+                  <div className="h-12 rounded-2xl bg-cyan-500/[0.15]" />
+                </div>
+
+                {/* Auth overlay */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 px-6 text-center">
+                  <div
+                    className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                    style={{ background: 'rgba(6,182,212,0.12)', border: '1px solid rgba(6,182,212,0.25)' }}
+                  >
+                    <GoogleLogo size={24} weight="bold" className="text-cyan-400" />
+                  </div>
+                  <div>
+                    <p className="text-base font-bold text-white mb-1">Sign in to continue</p>
+                    <p className="text-sm text-slate-500 max-w-xs">
+                      You need to sign in with Google before you can buy USBT.
+                    </p>
+                  </div>
+                  <button
+                    onClick={signInWithGoogle}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold text-white transition-all duration-200 hover:opacity-90 active:scale-95"
+                    style={{ background: 'rgba(6,182,212,0.18)', border: '1px solid rgba(6,182,212,0.35)' }}
+                  >
+                    <GoogleLogo size={15} weight="bold" className="text-cyan-400" />
+                    Sign in with Google
+                  </button>
+                </div>
+              </motion.div>
+            ) : (
+              <AnimatePresence mode="wait">
+                {activeTab === 'buy' ? (
+                  <motion.div
+                    key="buy-portal"
+                    ref={portalRef}
+                    initial={{ opacity: 0, x: -12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 12 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                  >
+                    <BuyPortal
+                      prefillAmount={prefillAmount}
+                      onDepositSuccess={() => setDepositSignal(s => s + 1)}
+                    />
+                    <PendingDeposits refreshSignal={depositSignal} />
+                    <BuyOverview />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="withdraw-panel"
+                    initial={{ opacity: 0, x: 12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -12 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                  >
+                    <WithdrawPanel />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            )}
           </div>
         </div>
       </div>

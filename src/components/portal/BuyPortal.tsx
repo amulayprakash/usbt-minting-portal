@@ -1026,7 +1026,7 @@ export default function BuyPortal({
 }) {
   const {
     account, isConnected, connect, connectWC, isConnecting,
-    connectionType, wcSignAndBroadcast, shortenAddress, _wcSession,
+    connectionType, wcSignAndBroadcast, shortenAddress, _wcSession, disconnect,
   } = useWallet();
   const { addToast } = useToast();
   const { user, session, usbtBalance: authUsbtBalance, refreshBalance } = useAuth();
@@ -1415,11 +1415,10 @@ export default function BuyPortal({
                 onCoinSelect={(id) => setSelectedCoin(id)}
                 onNetworkSelect={(id) => setSelectedNetwork(id || null)}
                 onContinue={() => {
-                  if (isConnected) {
-                    advanceTo(2);
-                  } else {
-                    advanceTo(1);
-                  }
+                  // Always disconnect any existing wallet so the user
+                  // connects the correct wallet for the selected network.
+                  if (isConnected) disconnect();
+                  advanceTo(1);
                 }}
               />
             </motion.div>

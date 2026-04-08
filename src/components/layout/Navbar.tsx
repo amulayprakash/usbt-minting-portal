@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { List, X, Moon, Sun, User, SignOut, Gauge } from '@phosphor-icons/react';
 import { clsx } from 'clsx';
 import Logo from '../ui/Logo';
-import WalletButton from '../ui/WalletButton';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -85,7 +84,7 @@ export default function Navbar() {
                   key={link.to}
                   to={link.to}
                   className={clsx(
-                    'relative px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-300',
+                    'relative px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-300 whitespace-nowrap',
                     active
                       ? 'text-slate-900 dark:text-white'
                       : 'text-slate-500 dark:text-[#8b8ba8] hover:text-slate-900 dark:hover:text-white hover:bg-black/[0.05] dark:hover:bg-white/[0.05]'
@@ -146,8 +145,6 @@ export default function Navbar() {
                 )}
               </AnimatePresence>
             </motion.button>
-
-            <WalletButton />
 
             {/* Auth button */}
             {user ? (
