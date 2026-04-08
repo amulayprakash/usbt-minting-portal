@@ -269,8 +269,19 @@ function WalletProvider({ children }: { children: ReactNode }) {
     if (!session || connectionType !== 'walletconnect') {
       throw new Error('Not connected via WalletConnect.');
     }
-    const signedTx = await wcSignTx(session, unsignedTx);
-    return broadcastTransaction(signedTx);
+    const signedTx = await wcSignTx(session, unsignedTx) as Record<string, unknown>;
+    const unsigned = unsignedTx as Record<string, unknown>;
+
+    // If the wallet returned only a signature (not the full tx), merge it onto the original.
+    const fullSignedTx: Record<string, unknown> = signedTx.txID
+      ? { ...signedTx }
+      : { ...unsigned, ...signedTx };
+
+    // Restore visible flag from the original transaction so TronGrid's broadcast
+    // endpoint correctly interprets base58 addresses in raw_data.
+    if (unsigned.visible !== undefined) fullSignedTx.visible = unsigned.visible;
+
+    return broadcastTransaction(fullSignedTx);
   }, [connectionType]);
 
   // ── Helpers ─────────────────────────────────────────────────────────────
