@@ -212,11 +212,7 @@ export default function WithdrawPanel() {
                       }}
                     >
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        {/* Tether-style SVG icon matching USDT look */}
-                        <svg width="20" height="20" viewBox="0 0 2000 2000" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <circle cx="1000" cy="1000" r="1000" fill="#26A17B"/>
-                          <path d="M1122.7 866.8V747H1463.1V534H536.9V747H877.3V866.7C601.5 879.3 393 934.1 393 999.8C393 1065.5 601.5 1120.3 877.3 1133V1466H1122.7V1133C1398.3 1120.4 1607 1065.5 1607 999.8C1607 934.1 1398.3 879.3 1122.7 866.8ZM1122.7 1093.2V1093C1116.4 1093.4 1082.7 1095.4 1001.9 1095.4C937.3 1095.4 892 1093.6 877.3 1093V1093.2C625.8 1082.3 439 1036.7 439 981.9C439 927.1 625.8 881.5 877.3 870.6V1028C892.2 1029.1 938.5 1031.9 1003 1031.9C1080.3 1031.9 1116.6 1028.6 1122.7 1028V870.6C1373.8 881.5 1560.4 927.1 1560.4 981.9C1560.4 1036.7 1373.8 1082.2 1122.7 1093.2Z" fill="white"/>
-                        </svg>
+                        <img src="/usbt-logo.png" alt="USBT" width="20" height="20" className="rounded-full" />
                         <span className="text-sm font-bold text-white">USBT</span>
                       </div>
                       <input
