@@ -220,14 +220,14 @@ export const EVM_CHAINS: Record<string, EvmChainConfig> = IS_TESTNET
     },
     bsc:       { chainId: '0xaa36a7', rpcUrl: 'https://eth-sepolia.public.blastapi.io', tokenAddress: import.meta.env.VITE_EVM_TOKEN_SEPOLIA as string, tokenSymbol: 'USDT', tokenDecimals: 6, label: 'Sepolia', explorerTx: 'https://sepolia.etherscan.io/tx/' },
     polygon:   { chainId: '0xaa36a7', rpcUrl: 'https://eth-sepolia.public.blastapi.io', tokenAddress: import.meta.env.VITE_EVM_TOKEN_SEPOLIA as string, tokenSymbol: 'USDT', tokenDecimals: 6, label: 'Sepolia', explorerTx: 'https://sepolia.etherscan.io/tx/' },
-    arbitrum:  { chainId: '0xaa36a7', rpcUrl: 'https://eth-sepolia.public.blastapi.io', tokenAddress: import.meta.env.VITE_EVM_TOKEN_SEPOLIA as string, tokenSymbol: 'USDT', tokenDecimals: 6, label: 'Sepolia', explorerTx: 'https://sepolia.etherscan.io/tx/' },
+    solana:    { chainId: '0xaa36a7', rpcUrl: 'https://eth-sepolia.public.blastapi.io', tokenAddress: import.meta.env.VITE_EVM_TOKEN_SEPOLIA as string, tokenSymbol: 'USDT', tokenDecimals: 6, label: 'Sepolia', explorerTx: 'https://sepolia.etherscan.io/tx/' },
     avalanche: { chainId: '0xaa36a7', rpcUrl: 'https://eth-sepolia.public.blastapi.io', tokenAddress: import.meta.env.VITE_EVM_TOKEN_SEPOLIA as string, tokenSymbol: 'USDT', tokenDecimals: 6, label: 'Sepolia', explorerTx: 'https://sepolia.etherscan.io/tx/' },
   }
   : {
     ethereum:  { chainId: '0x1',      rpcUrl: 'https://eth.llamarpc.com',              tokenAddress: import.meta.env.VITE_EVM_TOKEN_ETHEREUM as string, tokenSymbol: 'USDT', tokenDecimals: 6, label: 'Ethereum', explorerTx: 'https://etherscan.io/tx/' },
     bsc:       { chainId: '0x38',     rpcUrl: 'https://bsc-dataseed.binance.org',       tokenAddress: import.meta.env.VITE_EVM_TOKEN_BSC as string,      tokenSymbol: 'USDT', tokenDecimals: 18, label: 'BNB Chain', explorerTx: 'https://bscscan.com/tx/' },
     polygon:   { chainId: '0x89',     rpcUrl: 'https://polygon-rpc.com',               tokenAddress: import.meta.env.VITE_EVM_TOKEN_POLYGON as string,   tokenSymbol: 'USDT', tokenDecimals: 6, label: 'Polygon', explorerTx: 'https://polygonscan.com/tx/' },
-    arbitrum:  { chainId: '0xa4b1',   rpcUrl: 'https://arb1.arbitrum.io/rpc',          tokenAddress: import.meta.env.VITE_EVM_TOKEN_ARBITRUM as string,  tokenSymbol: 'USDT', tokenDecimals: 6, label: 'Arbitrum', explorerTx: 'https://arbiscan.io/tx/' },
+    solana:    { chainId: '0x0',      rpcUrl: '',                                       tokenAddress: '',                                                  tokenSymbol: 'USDT', tokenDecimals: 6, label: 'Solana',   explorerTx: 'https://solscan.io/tx/' },
     avalanche: { chainId: '0xa86a',   rpcUrl: 'https://api.avax.network/ext/bc/C/rpc', tokenAddress: import.meta.env.VITE_EVM_TOKEN_AVALANCHE as string, tokenSymbol: 'USDT', tokenDecimals: 6, label: 'Avalanche', explorerTx: 'https://snowtrace.io/tx/' },
   };
 

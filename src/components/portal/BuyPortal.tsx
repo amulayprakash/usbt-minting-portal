@@ -38,12 +38,12 @@ const COINS = [
   {
     id: 'usdt', label: 'USDT', sublabel: 'Tether USD',
     logo: '/usdt-logo.png',
-    networks: ['tron', 'ethereum', 'bsc', 'polygon', 'arbitrum'],
+    networks: ['tron', 'ethereum', 'bsc', 'polygon', 'solana'],
   },
   {
     id: 'usdc', label: 'USDC', sublabel: 'USD Coin',
     color: '#2775CA',
-    networks: ['ethereum', 'bsc', 'polygon', 'arbitrum', 'avalanche'],
+    networks: ['ethereum', 'bsc', 'polygon', 'solana', 'avalanche'],
   },
   {
     id: 'busd', label: 'BUSD', sublabel: 'Binance USD',
@@ -53,20 +53,20 @@ const COINS = [
   {
     id: 'dai', label: 'DAI', sublabel: 'Dai Stablecoin',
     color: '#F5AC37',
-    networks: ['ethereum', 'polygon', 'arbitrum'],
+    networks: ['ethereum', 'polygon', 'solana'],
   },
 ] as const;
 
 type CoinId = (typeof COINS)[number]['id'];
 
 const NETWORKS: Record<string, {
-  label: string; badge: string; abbr: string; color: string; type: 'tron' | 'evm';
+  label: string; badge: string; abbr: string; color: string; type: 'tron' | 'evm'; disabled?: boolean;
 }> = {
   tron:      { label: 'TRON',      badge: 'TRC-20', abbr: 'TRX',  color: '#EF4444', type: 'tron' },
   ethereum:  { label: 'Ethereum',  badge: 'ERC-20', abbr: 'ETH',  color: '#627EEA', type: 'evm'  },
   bsc:       { label: 'BNB Chain', badge: 'BEP-20', abbr: 'BNB',  color: '#F3BA2F', type: 'evm'  },
   polygon:   { label: 'Polygon',   badge: 'ERC-20', abbr: 'MATIC',color: '#8247E5', type: 'evm'  },
-  arbitrum:  { label: 'Arbitrum',  badge: 'ERC-20', abbr: 'ARB',  color: '#28A0F0', type: 'evm'  },
+  solana:    { label: 'Solana',    badge: 'SPL',     abbr: 'SOL',  color: '#9945FF', type: 'evm', disabled: true },
   avalanche: { label: 'Avalanche', badge: 'ERC-20', abbr: 'AVAX', color: '#E84142', type: 'evm'  },
 };
 
@@ -263,12 +263,14 @@ function CoinNetworkStep({
                 const net = NETWORKS[netId];
                 if (!net) return null;
                 const isSelected = selectedNetwork === netId;
+                const isDisabled = !!net.disabled;
                 return (
                   <button
                     key={netId}
-                    onClick={() => onNetworkSelect(netId)}
+                    onClick={() => !isDisabled && onNetworkSelect(netId)}
+                    disabled={isDisabled}
                     className="flex items-center gap-2.5 p-3 rounded-xl border text-left
-                      transition-all duration-200 active:scale-[0.97] cursor-pointer"
+                      transition-all duration-200"
                     style={{
                       border: isSelected
                         ? `1px solid ${net.color}55`
@@ -277,6 +279,8 @@ function CoinNetworkStep({
                         ? `${net.color}12`
                         : 'rgba(255,255,255,0.025)',
                       boxShadow: isSelected ? `0 0 14px ${net.color}22` : undefined,
+                      opacity: isDisabled ? 0.4 : 1,
+                      cursor: isDisabled ? 'not-allowed' : 'pointer',
                     }}
                   >
                     {/* Network badge */}
@@ -287,9 +291,17 @@ function CoinNetworkStep({
                       {net.abbr.slice(0, 3)}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-bold text-white leading-tight truncate">
-                        {net.label}
-                      </p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-xs font-bold text-white leading-tight truncate">
+                          {net.label}
+                        </p>
+                        {isDisabled && (
+                          <span className="text-[8px] font-bold uppercase tracking-wide px-1 py-px rounded"
+                            style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.3)' }}>
+                            Soon
+                          </span>
+                        )}
+                      </div>
                       <p className="text-[10px] leading-tight" style={{ color: `${net.color}aa` }}>
                         {net.badge}
                       </p>
