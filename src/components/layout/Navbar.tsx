@@ -111,7 +111,7 @@ export default function Navbar() {
             <Link
               to="/buy"
               className={clsx(
-                'hidden sm:flex items-center gap-1.5 px-3 h-8 rounded-full text-xs font-semibold',
+                'flex sm:hidden items-center gap-1.5 px-3 h-8 rounded-full text-xs font-semibold',
                 'border transition-all duration-300',
                 isDark
                   ? 'bg-cyan-500/[0.10] border-cyan-500/[0.25] text-cyan-400 hover:bg-cyan-500/[0.18]'
