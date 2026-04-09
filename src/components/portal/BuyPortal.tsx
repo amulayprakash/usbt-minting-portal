@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowDown, ArrowSquareOut, CheckCircle, Warning, X, Gift,
@@ -21,7 +21,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
 
 type TxStep = 'idle' | 'approving' | 'buying' | 'success' | 'error';
-type FlowStep = 0 | 1 | 2;
+type FlowStep = 0 | 1;
 
 /** Convert a human-readable amount to token units without float precision loss */
 function toTokenUnits(amount: number, decimals: number): bigint {
@@ -30,7 +30,7 @@ function toTokenUnits(amount: number, decimals: number): bigint {
   return BigInt(intPart + frac);
 }
 
-const STEP_LABELS = ['Coin & Network', 'Connect Wallet', 'Enter Amount'];
+const STEP_LABELS = ['Coin & Network', 'Enter Amount'];
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
@@ -1079,15 +1079,24 @@ export default function BuyPortal({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
 
+  const errorRef = useRef<HTMLDivElement>(null);
+
   const advanceTo = (step: FlowStep) => {
     setFlowStep(step);
     setMaxReached(prev => (step > prev ? step : prev));
   };
 
-  // Auto-advance from wallet step when wallet connects
+  // Scroll to error on mobile when transaction fails
   useEffect(() => {
-    if (flowStep === 1 && isConnected) {
-      const t = setTimeout(() => advanceTo(2), 700);
+    if (txStep === 'error' && errorRef.current) {
+      errorRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [txStep]);
+
+  // Auto-advance to amount step when wallet connects
+  useEffect(() => {
+    if (flowStep === 0 && isConnected) {
+      const t = setTimeout(() => advanceTo(1), 700);
       return () => clearTimeout(t);
     }
   }, [isConnected, flowStep]);
@@ -1453,10 +1462,10 @@ export default function BuyPortal({
         <AnimatePresence mode="wait">
           {txStep === 'success' ? (
             <motion.div key="success" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <SuccessState txid={txid} onReset={() => { resetTx(); setFlowStep(2); }} />
+              <SuccessState txid={txid} onReset={() => { resetTx(); setFlowStep(1); }} />
             </motion.div>
           ) : txStep === 'error' ? (
-            <motion.div key="error" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div key="error" ref={errorRef} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <ErrorState message={errorMsg} onReset={resetTx} />
             </motion.div>
           ) : flowStep === 0 ? (
@@ -1476,34 +1485,13 @@ export default function BuyPortal({
                   // Always disconnect any existing wallet so the user
                   // connects the correct wallet for the selected network.
                   if (isConnected) disconnect();
-                  advanceTo(1);
+                  setWalletModalOpen(true);
                 }}
-              />
-            </motion.div>
-          ) : flowStep === 1 ? (
-            <motion.div
-              key="step-1"
-              initial={{ opacity: 0, x: 16 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -16 }}
-              transition={{ type: 'spring', stiffness: 320, damping: 30 }}
-            >
-              <WalletStep
-                selectedNetwork={selectedNetwork}
-                isConnected={isConnected}
-                isConnecting={isConnecting}
-                account={account}
-                connectionType={connectionType}
-                connect={connect}
-                shortenAddress={shortenAddress}
-                onBack={() => setFlowStep(0)}
-                onContinue={() => advanceTo(2)}
-                onOpenWalletModal={() => setWalletModalOpen(true)}
               />
             </motion.div>
           ) : (
             <motion.div
-              key="step-2"
+              key="step-1"
               initial={{ opacity: 0, x: 16 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -16 }}
@@ -1529,7 +1517,7 @@ export default function BuyPortal({
                 parsedUsdt={parsedUsdt}
                 onMaxUsdt={handleMaxUsdt}
                 onBuy={handleBuy}
-                onBack={() => setFlowStep(1)}
+                onBack={() => setFlowStep(0)}
                 onSelectTier={(minUsdt) => setUsdtAmount(String(minUsdt))}
                 shortenAddress={shortenAddress}
               />

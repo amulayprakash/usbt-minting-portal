@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { List, X, Moon, Sun, User, SignOut, Gauge } from '@phosphor-icons/react';
+import { List, X, User, SignOut, Gauge } from '@phosphor-icons/react';
 import { clsx } from 'clsx';
 import Logo from '../ui/Logo';
 import { useTheme } from '../../hooks/useTheme';
@@ -16,7 +16,7 @@ const NAV_LINKS = [
 
 export default function Navbar() {
   const location = useLocation();
-  const { theme, toggle } = useTheme();
+  const { theme } = useTheme();
   const isDark = theme === 'dark';
   const { user, signInWithGoogle, signOut } = useAuth();
   const [scrolled, setScrolled] = useState(false);
@@ -107,44 +107,19 @@ export default function Navbar() {
 
           {/* Theme toggle + Wallet + hamburger */}
           <div className="flex items-center gap-2">
-            {/* Theme toggle */}
-            <motion.button
-              onClick={toggle}
-              whileTap={{ scale: 0.92 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+            {/* Get USBT button */}
+            <Link
+              to="/buy"
               className={clsx(
-                'w-8 h-8 flex items-center justify-center rounded-full',
-                'border transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]',
+                'hidden sm:flex items-center gap-1.5 px-3 h-8 rounded-full text-xs font-semibold',
+                'border transition-all duration-300',
                 isDark
-                  ? 'bg-white/[0.05] border-white/[0.09] text-[#8b8ba8] hover:text-amber-300 hover:bg-amber-300/[0.08] hover:border-amber-300/[0.20]'
-                  : 'bg-black/[0.05] border-black/[0.09] text-slate-500 hover:text-cyan-600 hover:bg-cyan-500/[0.08] hover:border-cyan-500/[0.20]'
+                  ? 'bg-cyan-500/[0.10] border-cyan-500/[0.25] text-cyan-400 hover:bg-cyan-500/[0.18]'
+                  : 'bg-cyan-500/[0.10] border-cyan-500/[0.25] text-cyan-600 hover:bg-cyan-500/[0.18]'
               )}
-              aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
             >
-              <AnimatePresence mode="wait" initial={false}>
-                {isDark ? (
-                  <motion.span
-                    key="moon"
-                    initial={{ rotate: -30, opacity: 0, scale: 0.8 }}
-                    animate={{ rotate: 0, opacity: 1, scale: 1 }}
-                    exit={{ rotate: 30, opacity: 0, scale: 0.8 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <Moon size={14} weight="fill" />
-                  </motion.span>
-                ) : (
-                  <motion.span
-                    key="sun"
-                    initial={{ rotate: 30, opacity: 0, scale: 0.8 }}
-                    animate={{ rotate: 0, opacity: 1, scale: 1 }}
-                    exit={{ rotate: -30, opacity: 0, scale: 0.8 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <Sun size={14} weight="fill" />
-                  </motion.span>
-                )}
-              </AnimatePresence>
-            </motion.button>
+              Get USBT
+            </Link>
 
             {/* Auth button */}
             {user ? (
