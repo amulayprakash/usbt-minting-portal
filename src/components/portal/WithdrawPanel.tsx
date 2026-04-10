@@ -212,7 +212,9 @@ export default function WithdrawPanel() {
                       }}
                     >
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        <img src="/usbt-logo.png" alt="USBT" width="20" height="20" className="rounded-full" />
+                        <div className="w-5 h-5 rounded-full flex-shrink-0" style={{ background: '#06b6d4' }}>
+                          <img src="/usbt-logo.png" alt="USBT" width="20" height="20" className="rounded-full" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                        </div>
                         <span className="text-sm font-bold text-white">USBT</span>
                       </div>
                       <input
@@ -222,8 +224,8 @@ export default function WithdrawPanel() {
                         value={usbtAmount}
                         onChange={(e) => setUsbtAmount(e.target.value)}
                         disabled={txStep === 'signing'}
-                        className="flex-1 bg-transparent text-right text-xl font-bold text-white
-                          placeholder-slate-700 outline-none border-none"
+                        className="flex-1 min-w-0 bg-transparent text-right text-base sm:text-xl font-bold text-white
+                          placeholder-slate-700 outline-none border-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         style={{ fontFamily: 'Geist Mono, monospace' }}
                       />
                     </div>

@@ -14,6 +14,7 @@ import {
   CaretDown,
 } from '@phosphor-icons/react';
 import Button from '../ui/Button';
+import WalletModal from '../ui/WalletModal';
 import { useWallet } from '../../hooks/useWallet';
 import { useToast } from '../../hooks/useToast';
 import { useTokenPrice } from '../../hooks/useTokenPrice';
@@ -39,7 +40,7 @@ import {
 type TxStep = 'idle' | 'approving' | 'swapping' | 'success' | 'error';
 
 export default function SellPortal() {
-  const { account, isConnected, connect, isConnecting, connectionType, wcSignAndBroadcast } = useWallet();
+  const { account, isConnected, isConnecting, connectionType, disconnect, wcSignAndBroadcast } = useWallet();
   const { addToast } = useToast();
   const { price, getAmountsOut } = useTokenPrice();
 
@@ -53,6 +54,14 @@ export default function SellPortal() {
   const [slippageBps] = useState(DEFAULT_SLIPPAGE_BPS);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [priceImpact, setPriceImpact] = useState<number | null>(null);
+  const [walletModalOpen, setWalletModalOpen] = useState(false);
+
+  // Force WalletConnect — disconnect any non-WC connection on mount/change
+  useEffect(() => {
+    if (isConnected && connectionType !== 'walletconnect') {
+      disconnect();
+    }
+  }, [isConnected, connectionType, disconnect]);
 
   useEffect(() => {
     if (!isConnected || !account || !window.tronWeb) return;
@@ -551,7 +560,7 @@ export default function SellPortal() {
                   size="lg"
                   fullWidth
                   loading={isConnecting}
-                  onClick={connect}
+                  onClick={() => setWalletModalOpen(true)}
                 >
                   Connect Wallet
                 </Button>
@@ -580,6 +589,12 @@ export default function SellPortal() {
         Sale routes through SunSwap v2. Output determined by on-chain pool reserves.
         Transactions are irreversible.
       </p>
+
+      <WalletModal
+        open={walletModalOpen}
+        onClose={() => setWalletModalOpen(false)}
+        chainType="tron"
+      />
     </div>
   );
 }
