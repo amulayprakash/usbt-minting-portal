@@ -359,7 +359,9 @@ export default function SellPortal() {
                     className="flex items-center gap-2 px-3 py-2 rounded-xl flex-shrink-0"
                     style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}
                   >
-                    <img src="/usbt-logo.png" alt="USBT" width="20" height="20" className="rounded-full" />
+                    <div className="w-5 h-5 rounded-full flex-shrink-0" style={{ background: '#06b6d4' }}>
+                      <img src="/usbt-logo.png" alt="USBT" width="20" height="20" className="rounded-full" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                    </div>
                     <span className="text-sm font-bold text-white">USBT</span>
                   </div>
                   {/* Amount input */}
@@ -370,7 +372,7 @@ export default function SellPortal() {
                     value={usbtAmount}
                     onChange={(e) => setUsbtAmount(e.target.value)}
                     disabled={isLoading}
-                    className="flex-1 min-w-0 bg-transparent text-right text-xl font-bold text-white placeholder-slate-600 outline-none border-none"
+                    className="flex-1 min-w-0 bg-transparent text-right text-base sm:text-xl font-bold text-white placeholder-slate-600 outline-none border-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     style={{ fontFamily: 'Geist Mono, monospace' }}
                   />
                 </div>
@@ -446,7 +448,9 @@ export default function SellPortal() {
                     className="flex items-center gap-2 px-3 py-2 rounded-xl flex-shrink-0"
                     style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}
                   >
-                    <img src="/usdt-logo.png" className="w-5 h-5 rounded-full" alt="USDT" />
+                    <div className="w-5 h-5 rounded-full flex-shrink-0" style={{ background: '#26A17B' }}>
+                      <img src="/usdt-logo.png" className="w-5 h-5 rounded-full" alt="USDT" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                    </div>
                     <span className="text-sm font-bold text-white">USDT</span>
                   </div>
                   {/* Amount output */}

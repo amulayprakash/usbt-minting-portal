@@ -663,7 +663,17 @@ function AmountStep({
               style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)' }}
             >
               {'logo' in coin && coin.logo ? (
-                <img src={coin.logo} alt={coin.label} className="w-3.5 h-3.5 rounded-full" />
+                <div
+                  className="w-3.5 h-3.5 rounded-full flex-shrink-0"
+                  style={{ background: 'color' in coin ? (coin as { color: string }).color : '#26A17B' }}
+                >
+                  <img
+                    src={coin.logo}
+                    alt={coin.label}
+                    className="w-3.5 h-3.5 rounded-full"
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                  />
+                </div>
               ) : (
                 <div
                   className="w-3.5 h-3.5 rounded-full"
@@ -725,7 +735,17 @@ function AmountStep({
             style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.10)' }}
           >
             {'logo' in (coin ?? {}) && (coin as { logo?: string }).logo ? (
-              <img src={(coin as { logo: string }).logo} className="w-5 h-5 rounded-full" alt={coin?.label} />
+              <div
+                className="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center text-[8px] font-black text-white"
+                style={{ background: 'color' in (coin ?? {}) ? (coin as { color: string }).color : '#26A17B' }}
+              >
+                <img
+                  src={(coin as { logo: string }).logo}
+                  className="w-5 h-5 rounded-full"
+                  alt={coin?.label}
+                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                />
+              </div>
             ) : (
               <div
                 className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-black text-white"
@@ -743,8 +763,8 @@ function AmountStep({
             value={usdtAmount}
             onChange={e => setUsdtAmount(e.target.value)}
             disabled={isLoading}
-            className="flex-1 min-w-0 bg-transparent text-right text-2xl font-bold text-white
-              placeholder-slate-700 outline-none border-none"
+            className="flex-1 min-w-0 bg-transparent text-right text-lg sm:text-2xl font-bold text-white
+              placeholder-slate-700 outline-none border-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             style={{ fontFamily: 'Geist Mono, monospace' }}
           />
         </div>
@@ -794,7 +814,9 @@ function AmountStep({
             className="flex items-center gap-2 px-3 py-2 rounded-xl flex-shrink-0"
             style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.10)' }}
           >
-            <img src="/usbt-logo.png" alt="USBT" width="20" height="20" className="rounded-full" />
+            <div className="w-5 h-5 rounded-full flex-shrink-0" style={{ background: '#06b6d4' }}>
+              <img src="/usbt-logo.png" alt="USBT" width="20" height="20" className="rounded-full" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+            </div>
             <span className="text-sm font-bold text-white">USBT</span>
           </div>
           {/* Trustified badge */}
