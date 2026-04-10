@@ -7,6 +7,8 @@ import {
 import {
   callContractConstant,
   tronB58ToHex,
+  abiEncodeUint256,
+  abiEncodeAddress,
 } from '../lib/tronGrid';
 
 export interface PriceState {
@@ -193,7 +195,8 @@ export function useTokenPrice() {
   }, [fetchPrice]);
 
   /**
-   * Compute expected output using the SunSwap v2 AMM formula directly from pool reserves.
+   * Compute expected output by calling the SunSwap v2 Router's getAmountsOut on-chain.
+   * Falls back to local AMM formula from reserves if the router call fails.
    * isUsbtToUsdt: true = selling USBT for USDT, false = buying USBT with USDT.
    */
   const getAmountsOut = useCallback(
@@ -201,19 +204,49 @@ export function useTokenPrice() {
       if (amountIn <= 0) return null;
 
       const amountInUnits = BigInt(Math.floor(amountIn * DECIMALS_FACTOR));
+      const path = isUsbtToUsdt
+        ? [CONTRACTS.STABLE, CONTRACTS.COLLATERAL]
+        : [CONTRACTS.COLLATERAL, CONTRACTS.STABLE];
 
-      // Step 1: Use cached reserves if available
+      // Step 1: Call Router's getAmountsOut on-chain for exact quote
+      try {
+        // ABI encode: amountIn (uint256), path (address[])
+        // param layout: amountIn(32) + offset_to_path(32=64) + path.length(32) + path[0](32) + path[1](32)
+        const param =
+          abiEncodeUint256(amountInUnits) +
+          abiEncodeUint256(64) +
+          abiEncodeUint256(path.length) +
+          path.map(abiEncodeAddress).join('');
+
+        const resultHex = await callContractConstant({
+          ownerAddress: CONTRACTS.STABLE,
+          contractAddress: CONTRACTS.ROUTER,
+          functionSelector: 'getAmountsOut(uint256,address[])',
+          parameter: param,
+        });
+
+        // Return is uint256[]: offset(64 chars) + length(64) + amounts[0](64) + amounts[1](64)
+        if (resultHex && resultHex.length >= 256) {
+          const amountOut = BigInt('0x' + resultHex.slice(192, 256));
+          const result = Number(amountOut) / DECIMALS_FACTOR;
+          if (!isNaN(result) && result > 0) return result;
+        }
+      } catch {
+        // fall through to local AMM
+      }
+
+      // Step 2: Fallback — local AMM using cached reserves
       if (state.reserveUsbt !== null && state.reserveUsdt !== null) {
         const reserveIn = isUsbtToUsdt ? state.reserveUsbt : state.reserveUsdt;
         const reserveOut = isUsbtToUsdt ? state.reserveUsdt : state.reserveUsbt;
         const out = calcAmmOut(amountInUnits, reserveIn, reserveOut);
         if (out !== null) {
           const result = Number(out) / DECIMALS_FACTOR;
-          return isNaN(result) ? null : result;
+          if (!isNaN(result)) return result;
         }
       }
 
-      // Step 2: Fetch fresh reserves via TronGrid
+      // Step 3: Fallback — fetch fresh reserves via TronGrid
       const reserves = await fetchReservesViaGrid();
       if (reserves !== null) {
         const reserveIn = isUsbtToUsdt ? reserves.reserveUsbt : reserves.reserveUsdt;
@@ -221,11 +254,11 @@ export function useTokenPrice() {
         const out = calcAmmOut(amountInUnits, reserveIn, reserveOut);
         if (out !== null) {
           const result = Number(out) / DECIMALS_FACTOR;
-          return isNaN(result) ? null : result;
+          if (!isNaN(result)) return result;
         }
       }
 
-      // Step 3: Last resort — spot price estimate (imprecise, no fee/impact)
+      // Step 4: Last resort — spot price estimate (imprecise, no fee/impact)
       if (state.price && state.price > 0) {
         return isUsbtToUsdt ? amountIn * state.price : amountIn / state.price;
       }
