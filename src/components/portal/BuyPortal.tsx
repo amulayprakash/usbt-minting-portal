@@ -736,12 +736,12 @@ function AmountStep({
           >
             {'logo' in (coin ?? {}) && (coin as { logo?: string }).logo ? (
               <div
-                className="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center text-[8px] font-black text-white"
+                className="w-5 h-5 rounded-full flex-shrink-0 overflow-hidden"
                 style={{ background: 'color' in (coin ?? {}) ? (coin as { color: string }).color : '#26A17B' }}
               >
                 <img
                   src={(coin as { logo: string }).logo}
-                  className="w-5 h-5 rounded-full"
+                  className="w-5 h-5 rounded-full object-cover"
                   alt={coin?.label}
                   onError={(e) => { e.currentTarget.style.display = 'none'; }}
                 />
@@ -814,8 +814,8 @@ function AmountStep({
             className="flex items-center gap-2 px-3 py-2 rounded-xl flex-shrink-0"
             style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.10)' }}
           >
-            <div className="w-5 h-5 rounded-full flex-shrink-0" style={{ background: '#06b6d4' }}>
-              <img src="/usbt-logo.png" alt="USBT" width="20" height="20" className="rounded-full" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+            <div className="w-5 h-5 rounded-full flex-shrink-0 overflow-hidden" style={{ background: '#06b6d4' }}>
+              <img src="/usbt-logo.png" alt="USBT" width="20" height="20" className="w-5 h-5 rounded-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
             </div>
             <span className="text-sm font-bold text-white">USBT</span>
           </div>
@@ -1085,8 +1085,8 @@ export default function BuyPortal({
   // Flow state
   const [flowStep, setFlowStep] = useState<FlowStep>(0);
   const [maxReached, setMaxReached] = useState<FlowStep>(0);
-  const [selectedCoin, setSelectedCoin] = useState<CoinId | null>(null);
-  const [selectedNetwork, setSelectedNetwork] = useState<string | null>(null);
+  const [selectedCoin, setSelectedCoin] = useState<CoinId | null>('usdt');
+  const [selectedNetwork, setSelectedNetwork] = useState<string | null>('tron');
   const [walletModalOpen, setWalletModalOpen] = useState(false);
 
   // TX state

@@ -212,8 +212,8 @@ export default function WithdrawPanel() {
                       }}
                     >
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        <div className="w-5 h-5 rounded-full flex-shrink-0" style={{ background: '#06b6d4' }}>
-                          <img src="/usbt-logo.png" alt="USBT" width="20" height="20" className="rounded-full" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                        <div className="w-5 h-5 rounded-full flex-shrink-0 overflow-hidden" style={{ background: '#06b6d4' }}>
+                          <img src="/usbt-logo.png" alt="USBT" width="20" height="20" className="w-5 h-5 rounded-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                         </div>
                         <span className="text-sm font-bold text-white">USBT</span>
                       </div>
