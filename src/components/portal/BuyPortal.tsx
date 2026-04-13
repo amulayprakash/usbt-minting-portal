@@ -804,45 +804,59 @@ function AmountStep({
       </div>
 
       {/* To — USBT */}
-      <div
-        className="rounded-xl px-4 py-3 mb-4 flex items-center justify-between"
-        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
-      >
-        <div className="flex items-center gap-2.5">
-          {/* USBT icon */}
+      {(() => {
+        const baseOut = usbtOut !== null && !isNaN(usbtOut) && usbtOut > 0 ? usbtOut : null;
+        const totalOut = baseOut !== null ? baseOut + bonusUsbt : null;
+        return (
           <div
-            className="flex items-center gap-2 px-3 py-2 rounded-xl flex-shrink-0"
-            style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.10)' }}
+            className="rounded-xl p-4 mb-4"
+            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
           >
-            <div className="w-5 h-5 rounded-full flex-shrink-0 overflow-hidden" style={{ background: '#06b6d4' }}>
-              <img src="/usbt-logo.png" alt="USBT" width="20" height="20" className="w-5 h-5 rounded-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-medium text-slate-400">You receive</span>
+              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full"
+                style={{ background: 'rgba(6,182,212,0.10)', border: '1px solid rgba(6,182,212,0.22)' }}
+              >
+                <ShieldCheck size={10} weight="fill" className="text-cyan-400" />
+                <span className="text-[10px] font-semibold text-cyan-400">Trustified</span>
+              </div>
             </div>
-            <span className="text-sm font-bold text-white">USBT</span>
+
+            <div className="flex items-center gap-3">
+              <div
+                className="flex items-center gap-2 px-3 py-2 rounded-xl flex-shrink-0"
+                style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.10)' }}
+              >
+                <div className="w-5 h-5 rounded-full flex-shrink-0 overflow-hidden" style={{ background: '#06b6d4' }}>
+                  <img src="/usbt-logo.png" alt="USBT" width="20" height="20" className="w-5 h-5 rounded-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                </div>
+                <span className="text-sm font-bold text-white">USBT</span>
+              </div>
+              <div className="flex-1 text-right" style={{ fontFamily: 'Geist Mono, monospace' }}>
+                {quoteLoading ? (
+                  <span className="skeleton inline-block w-20 h-6 rounded" />
+                ) : (
+                  <span className={`text-lg sm:text-xl font-bold ${totalOut !== null ? 'text-cyan-300' : 'text-slate-600'}`}>
+                    {totalOut !== null ? totalOut.toFixed(2) : '0.00'}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between mt-3">
+              <span className="text-xs text-slate-500">
+                Balance&nbsp;
+                <span className="font-mono">{usbtBalance !== null ? usbtBalance.toFixed(2) : '--'}</span>
+              </span>
+              {usbtBalance !== null && totalOut !== null && (
+                <span className="text-xs text-slate-500">
+                  After: <span className="text-cyan-400 font-mono">{(usbtBalance + totalOut).toFixed(2)}</span>
+                </span>
+              )}
+            </div>
           </div>
-          {/* Trustified badge */}
-          <div
-            className="flex items-center gap-1 px-2 py-0.5 rounded-full"
-            style={{ background: 'rgba(6,182,212,0.10)', border: '1px solid rgba(6,182,212,0.22)' }}
-          >
-            <ShieldCheck size={10} weight="fill" className="text-cyan-400" />
-            <span className="text-[10px] font-semibold text-cyan-400">Trustified</span>
-          </div>
-        </div>
-        <div className="text-right" style={{ fontFamily: 'Geist Mono, monospace' }}>
-          {quoteLoading ? (
-            <span className="skeleton inline-block w-20 h-5 rounded" />
-          ) : (
-            <span className={`text-lg font-bold ${usbtOut !== null && !isNaN(usbtOut) && usbtOut > 0 ? 'text-cyan-300' : 'text-slate-600'}`}>
-              ${usbtOut !== null && !isNaN(usbtOut) && usbtOut > 0 ? usbtOut.toFixed(2) : '0.00'}
-            </span>
-          )}
-          {usbtBalance !== null && usbtOut !== null && !isNaN(usbtOut) && usbtOut > 0 && (
-            <p className="text-[10px] text-slate-500 mt-0.5">
-              After: <span className="text-cyan-400">${(usbtBalance + usbtOut).toFixed(2)}</span>
-            </p>
-          )}
-        </div>
-      </div>
+        );
+      })()}
 
       {/* Bonus Tiers */}
       <div className="mb-4 mt-1">

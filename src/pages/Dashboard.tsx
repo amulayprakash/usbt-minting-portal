@@ -319,13 +319,17 @@ export default function Dashboard() {
                   className="rounded-2xl overflow-hidden"
                   style={{ border: '1px solid rgba(255,255,255,0.07)' }}
                 >
-                  {/* Table header */}
+                  {/* Desktop table header */}
                   <div
-                    className="hidden sm:grid grid-cols-[1fr_1.2fr_auto_auto_auto_auto] gap-4 px-4 py-2.5 text-[10px] font-semibold uppercase tracking-widest text-slate-600"
-                    style={{ background: 'rgba(255,255,255,0.025)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+                    className="hidden sm:grid gap-4 px-5 py-2.5 text-[10px] font-semibold uppercase tracking-widest text-slate-600"
+                    style={{
+                      gridTemplateColumns: '1fr 110px 110px 130px 80px 70px',
+                      background: 'rgba(255,255,255,0.025)',
+                      borderBottom: '1px solid rgba(255,255,255,0.06)',
+                    }}
                   >
                     <span>Amount</span>
-                    <span>Network · Token</span>
+                    <span>Network</span>
                     <span>Tx Hash</span>
                     <span>Date</span>
                     <span>Status</span>
@@ -341,63 +345,117 @@ export default function Dashboard() {
                         variants={rowVariants}
                         initial="hidden"
                         animate="visible"
-                        className="grid grid-cols-1 sm:grid-cols-[1fr_1.2fr_auto_auto_auto_auto] gap-2 sm:gap-4 px-4 py-3.5 items-center group"
                         style={{
                           background: i % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent',
                           borderBottom: i < deposits.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
                         }}
                       >
-                        {/* Amount */}
-                        <div>
-                          <p className="text-sm font-semibold text-white font-mono tabular-nums">
-                            {d.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}{' '}
-                            <span className="text-slate-400 font-sans font-medium">{d.token_symbol}</span>
-                          </p>
-                          {d.usbt_credited != null && (
-                            <p className="text-xs text-cyan-400 font-mono tabular-nums mt-0.5">
-                              → {d.usbt_credited.toLocaleString('en-US', { minimumFractionDigits: 2 })} USBT
-                            </p>
-                          )}
-                        </div>
-
-                        {/* Network + Token */}
-                        <div className="flex items-center gap-2">
-                          <NetworkBadge chain={d.chain} />
-                          <span className="text-xs text-slate-500 font-mono">{d.token_symbol}</span>
-                        </div>
-
-                        {/* Tx hash */}
-                        <a
-                          href={`${TRONSCAN_TX}${d.tx_hash}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1 text-xs font-mono text-slate-500 hover:text-cyan-400 transition-colors"
-                          title={d.tx_hash}
-                        >
-                          {truncateHash(d.tx_hash)}
-                          <ArrowSquareOut size={10} />
-                        </a>
-
-                        {/* Date */}
-                        <div className="text-right sm:text-left">
-                          <p className="text-xs text-slate-400">{date}</p>
-                          <p className="text-[10px] text-slate-600 font-mono">{time}</p>
-                        </div>
-
-                        {/* Status */}
-                        <StatusBadge status={d.status} />
-
-                        {/* Actions */}
-                        <div className="flex items-center gap-2 justify-end">
-                          {d.status === 'pending' && (
-                            <button
-                              onClick={() => handleRecheck(d)}
-                              disabled={recheckingId === d.id}
-                              className="text-[11px] font-semibold text-cyan-400 hover:text-cyan-300 disabled:opacity-40 transition-colors"
+                        {/* Mobile card layout */}
+                        <div className="sm:hidden px-4 py-3.5 space-y-2.5">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-semibold text-white font-mono tabular-nums">
+                                {d.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}{' '}
+                                <span className="text-slate-400 font-sans font-medium text-xs">{d.token_symbol}</span>
+                              </p>
+                              {d.usbt_credited != null && (
+                                <p className="text-xs text-cyan-400 font-mono tabular-nums mt-0.5">
+                                  → {d.usbt_credited.toLocaleString('en-US', { minimumFractionDigits: 2 })} USBT
+                                </p>
+                              )}
+                            </div>
+                            <StatusBadge status={d.status} />
+                          </div>
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <NetworkBadge chain={d.chain} />
+                              <span className="text-[11px] text-slate-500 font-mono">{d.token_symbol}</span>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-[11px] text-slate-400">{date}</p>
+                              <p className="text-[10px] text-slate-600 font-mono">{time}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between gap-2">
+                            <a
+                              href={`${TRONSCAN_TX}${d.tx_hash}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 text-[11px] font-mono text-slate-500 hover:text-cyan-400 transition-colors"
+                              title={d.tx_hash}
                             >
-                              {recheckingId === d.id ? 'Checking…' : 'Recheck'}
-                            </button>
-                          )}
+                              {truncateHash(d.tx_hash)}
+                              <ArrowSquareOut size={10} />
+                            </a>
+                            {d.status === 'pending' && (
+                              <button
+                                onClick={() => handleRecheck(d)}
+                                disabled={recheckingId === d.id}
+                                className="text-[11px] font-semibold text-cyan-400 hover:text-cyan-300 disabled:opacity-40 transition-colors"
+                              >
+                                {recheckingId === d.id ? 'Checking…' : 'Recheck'}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Desktop table row */}
+                        <div
+                          className="hidden sm:grid gap-4 px-5 py-3.5 items-center"
+                          style={{ gridTemplateColumns: '1fr 110px 110px 130px 80px 70px' }}
+                        >
+                          {/* Amount */}
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-white font-mono tabular-nums">
+                              {d.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}{' '}
+                              <span className="text-slate-400 font-sans font-medium">{d.token_symbol}</span>
+                            </p>
+                            {d.usbt_credited != null && (
+                              <p className="text-xs text-cyan-400 font-mono tabular-nums mt-0.5">
+                                → {d.usbt_credited.toLocaleString('en-US', { minimumFractionDigits: 2 })} USBT
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Network */}
+                          <div className="flex items-center gap-1.5">
+                            <NetworkBadge chain={d.chain} />
+                            <span className="text-xs text-slate-500 font-mono">{d.token_symbol}</span>
+                          </div>
+
+                          {/* Tx hash */}
+                          <a
+                            href={`${TRONSCAN_TX}${d.tx_hash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-xs font-mono text-slate-500 hover:text-cyan-400 transition-colors"
+                            title={d.tx_hash}
+                          >
+                            {truncateHash(d.tx_hash)}
+                            <ArrowSquareOut size={10} />
+                          </a>
+
+                          {/* Date */}
+                          <div>
+                            <p className="text-xs text-slate-400">{date}</p>
+                            <p className="text-[10px] text-slate-600 font-mono">{time}</p>
+                          </div>
+
+                          {/* Status */}
+                          <StatusBadge status={d.status} />
+
+                          {/* Actions */}
+                          <div className="flex items-center justify-end">
+                            {d.status === 'pending' && (
+                              <button
+                                onClick={() => handleRecheck(d)}
+                                disabled={recheckingId === d.id}
+                                className="text-[11px] font-semibold text-cyan-400 hover:text-cyan-300 disabled:opacity-40 transition-colors"
+                              >
+                                {recheckingId === d.id ? 'Checking…' : 'Recheck'}
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </motion.div>
                     )
@@ -424,13 +482,17 @@ export default function Dashboard() {
                   className="rounded-2xl overflow-hidden"
                   style={{ border: '1px solid rgba(255,255,255,0.07)' }}
                 >
-                  {/* Table header */}
+                  {/* Desktop table header */}
                   <div
-                    className="hidden sm:grid grid-cols-[1fr_1.4fr_auto_auto_auto_auto] gap-4 px-4 py-2.5 text-[10px] font-semibold uppercase tracking-widest text-slate-600"
-                    style={{ background: 'rgba(255,255,255,0.025)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+                    className="hidden sm:grid gap-4 px-5 py-2.5 text-[10px] font-semibold uppercase tracking-widest text-slate-600"
+                    style={{
+                      gridTemplateColumns: '90px 1fr 80px 110px 130px 80px',
+                      background: 'rgba(255,255,255,0.025)',
+                      borderBottom: '1px solid rgba(255,255,255,0.06)',
+                    }}
                   >
                     <span>Amount</span>
-                    <span>Wallet address</span>
+                    <span>Wallet Address</span>
                     <span>Network</span>
                     <span>Tx Hash</span>
                     <span>Date</span>
@@ -446,59 +508,106 @@ export default function Dashboard() {
                         variants={rowVariants}
                         initial="hidden"
                         animate="visible"
-                        className="grid grid-cols-1 sm:grid-cols-[1fr_1.4fr_auto_auto_auto_auto] gap-2 sm:gap-4 px-4 py-3.5 items-center"
                         style={{
                           background: i % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent',
                           borderBottom: i < withdrawals.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
                         }}
                       >
-                        {/* Amount */}
-                        <div>
-                          <p className="text-sm font-semibold text-white font-mono tabular-nums">
-                            {w.usbt_amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}{' '}
-                            <span className="text-slate-400 font-sans font-medium">USBT</span>
-                          </p>
+                        {/* Mobile card layout */}
+                        <div className="sm:hidden px-4 py-3.5 space-y-2.5">
+                          <div className="flex items-start justify-between gap-3">
+                            <p className="text-sm font-semibold text-white font-mono tabular-nums">
+                              {w.usbt_amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}{' '}
+                              <span className="text-slate-400 font-sans font-medium text-xs">USBT</span>
+                            </p>
+                            <StatusBadge status={w.status} />
+                          </div>
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <NetworkBadge chain="TRON" />
+                              <a
+                                href={`${TRONSCAN_ADDR}${w.tron_address}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 text-[11px] font-mono text-slate-400 hover:text-cyan-400 transition-colors truncate"
+                                title={w.tron_address}
+                              >
+                                {truncateAddress(w.tron_address, 10)}
+                                <ArrowSquareOut size={10} className="flex-shrink-0" />
+                              </a>
+                            </div>
+                            <div className="text-right flex-shrink-0">
+                              <p className="text-[11px] text-slate-400">{date}</p>
+                              <p className="text-[10px] text-slate-600 font-mono">{time}</p>
+                            </div>
+                          </div>
+                          {w.tx_hash && (
+                            <a
+                              href={`${TRONSCAN_TX}${w.tx_hash}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 text-[11px] font-mono text-slate-500 hover:text-cyan-400 transition-colors"
+                              title={w.tx_hash}
+                            >
+                              Tx: {truncateHash(w.tx_hash)}
+                              <ArrowSquareOut size={10} />
+                            </a>
+                          )}
                         </div>
 
-                        {/* Wallet address */}
-                        <a
-                          href={`${TRONSCAN_ADDR}${w.tron_address}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1 text-xs font-mono text-slate-400 hover:text-cyan-400 transition-colors truncate"
-                          title={w.tron_address}
+                        {/* Desktop table row */}
+                        <div
+                          className="hidden sm:grid gap-4 px-5 py-3.5 items-center"
+                          style={{ gridTemplateColumns: '90px 1fr 80px 110px 130px 80px' }}
                         >
-                          {truncateAddress(w.tron_address, 10)}
-                          <ArrowSquareOut size={10} className="flex-shrink-0" />
-                        </a>
+                          {/* Amount */}
+                          <div>
+                            <p className="text-sm font-semibold text-white font-mono tabular-nums">
+                              {w.usbt_amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}{' '}
+                              <span className="text-slate-400 font-sans font-medium">USBT</span>
+                            </p>
+                          </div>
 
-                        {/* Network */}
-                        <NetworkBadge chain="TRON" />
-
-                        {/* Tx hash */}
-                        {w.tx_hash ? (
+                          {/* Wallet address */}
                           <a
-                            href={`${TRONSCAN_TX}${w.tx_hash}`}
+                            href={`${TRONSCAN_ADDR}${w.tron_address}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-1 text-xs font-mono text-slate-500 hover:text-cyan-400 transition-colors"
-                            title={w.tx_hash}
+                            className="flex items-center gap-1 text-xs font-mono text-slate-400 hover:text-cyan-400 transition-colors truncate"
+                            title={w.tron_address}
                           >
-                            {truncateHash(w.tx_hash)}
-                            <ArrowSquareOut size={10} />
+                            {truncateAddress(w.tron_address, 10)}
+                            <ArrowSquareOut size={10} className="flex-shrink-0" />
                           </a>
-                        ) : (
-                          <span className="text-xs text-slate-700 font-mono">—</span>
-                        )}
 
-                        {/* Date */}
-                        <div>
-                          <p className="text-xs text-slate-400">{date}</p>
-                          <p className="text-[10px] text-slate-600 font-mono">{time}</p>
+                          {/* Network */}
+                          <NetworkBadge chain="TRON" />
+
+                          {/* Tx hash */}
+                          {w.tx_hash ? (
+                            <a
+                              href={`${TRONSCAN_TX}${w.tx_hash}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 text-xs font-mono text-slate-500 hover:text-cyan-400 transition-colors"
+                              title={w.tx_hash}
+                            >
+                              {truncateHash(w.tx_hash)}
+                              <ArrowSquareOut size={10} />
+                            </a>
+                          ) : (
+                            <span className="text-xs text-slate-700 font-mono">—</span>
+                          )}
+
+                          {/* Date */}
+                          <div>
+                            <p className="text-xs text-slate-400">{date}</p>
+                            <p className="text-[10px] text-slate-600 font-mono">{time}</p>
+                          </div>
+
+                          {/* Status */}
+                          <StatusBadge status={w.status} />
                         </div>
-
-                        {/* Status */}
-                        <StatusBadge status={w.status} />
                       </motion.div>
                     )
                   })}

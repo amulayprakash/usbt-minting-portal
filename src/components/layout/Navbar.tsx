@@ -2,11 +2,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { List, X, User, SignOut, Gauge } from '@phosphor-icons/react';
+import { List, X, User, SignOut, Gauge, Wallet } from '@phosphor-icons/react';
 import { clsx } from 'clsx';
 import Logo from '../ui/Logo';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../hooks/useAuth';
+import { useWallet } from '../../hooks/useWallet';
 
 const NAV_LINKS = [
   { to: '/', label: 'Overview' },
@@ -19,6 +20,7 @@ export default function Navbar() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const { user, signInWithGoogle, signOut } = useAuth();
+  const { isConnected, disconnect, account, shortenAddress } = useWallet();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
@@ -190,6 +192,26 @@ export default function Navbar() {
                         <SignOut size={14} weight="bold" />
                         Sign out
                       </button>
+                      {isConnected && (
+                        <>
+                          <div className={clsx('mx-3 my-1 h-px', isDark ? 'bg-white/[0.06]' : 'bg-black/[0.06]')} />
+                          <div className={clsx('px-3.5 py-1.5 text-[10px] font-semibold uppercase tracking-widest', isDark ? 'text-[#4a4a6a]' : 'text-slate-400')}>
+                            {account ? shortenAddress(account) : 'Wallet'}
+                          </div>
+                          <button
+                            onClick={() => { setUserDropdownOpen(false); disconnect(); }}
+                            className={clsx(
+                              'w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm font-medium transition-colors duration-150',
+                              isDark
+                                ? 'text-[#8b8ba8] hover:text-red-400 hover:bg-red-500/[0.06]'
+                                : 'text-slate-500 hover:text-red-500 hover:bg-red-500/[0.05]'
+                            )}
+                          >
+                            <Wallet size={14} weight="bold" />
+                            Disconnect wallet
+                          </button>
+                        </>
+                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -328,6 +350,26 @@ export default function Navbar() {
                   </button>
                 )}
               </motion.div>
+              {isConnected && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 12 }}
+                  transition={{ delay: (NAV_LINKS.length + (user ? 2 : 1)) * 0.07, type: 'spring', stiffness: 300, damping: 24 }}
+                  className="flex flex-col items-center gap-1"
+                >
+                  {account && (
+                    <p className="text-xs font-mono text-slate-400 dark:text-[#4a4a6a]">{shortenAddress(account)}</p>
+                  )}
+                  <button
+                    onClick={() => { setMobileOpen(false); disconnect(); }}
+                    className="flex items-center gap-2 text-xl font-semibold text-slate-400 dark:text-[#6a6a8a] hover:text-red-400 transition-colors"
+                  >
+                    <Wallet size={18} weight="bold" />
+                    Disconnect wallet
+                  </button>
+                </motion.div>
+              )}
             </div>
           </motion.div>
         )}
