@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   CONTRACTS,
   PAIR_ABI,
@@ -114,8 +114,8 @@ export function useTokenPrice() {
       let r1: bigint;
       let token0IsUsdt: boolean;
 
-      if (window.tronWeb) {
-        // TronLink path
+      if (window.tronWeb?.defaultAddress?.base58) {
+        // TronLink path — only when wallet is actually connected/unlocked
         const pair = await window.tronWeb.contract(
           PAIR_ABI as unknown as object[],
           CONTRACTS.PAIR
@@ -194,6 +194,11 @@ export function useTokenPrice() {
     return () => clearInterval(interval);
   }, [fetchPrice]);
 
+  // Keep a ref to the latest state so getAmountsOut doesn't need state as a dep
+  // (prevents it from recreating every 30s when fetchPrice updates state)
+  const stateRef = useRef(state);
+  stateRef.current = state;
+
   /**
    * Compute expected output by calling the SunSwap v2 Router's getAmountsOut on-chain.
    * Falls back to local AMM formula from reserves if the router call fails.
@@ -203,6 +208,7 @@ export function useTokenPrice() {
     async (amountIn: number, isUsbtToUsdt: boolean): Promise<number | null> => {
       if (amountIn <= 0) return null;
 
+      const { reserveUsbt, reserveUsdt, price } = stateRef.current;
       const amountInUnits = BigInt(Math.floor(amountIn * DECIMALS_FACTOR));
       const path = isUsbtToUsdt
         ? [CONTRACTS.STABLE, CONTRACTS.COLLATERAL]
@@ -236,9 +242,9 @@ export function useTokenPrice() {
       }
 
       // Step 2: Fallback — local AMM using cached reserves
-      if (state.reserveUsbt !== null && state.reserveUsdt !== null) {
-        const reserveIn = isUsbtToUsdt ? state.reserveUsbt : state.reserveUsdt;
-        const reserveOut = isUsbtToUsdt ? state.reserveUsdt : state.reserveUsbt;
+      if (reserveUsbt !== null && reserveUsdt !== null) {
+        const reserveIn = isUsbtToUsdt ? reserveUsbt : reserveUsdt;
+        const reserveOut = isUsbtToUsdt ? reserveUsdt : reserveUsbt;
         const out = calcAmmOut(amountInUnits, reserveIn, reserveOut);
         if (out !== null) {
           const result = Number(out) / DECIMALS_FACTOR;
@@ -259,13 +265,13 @@ export function useTokenPrice() {
       }
 
       // Step 4: Last resort — spot price estimate (imprecise, no fee/impact)
-      if (state.price && state.price > 0) {
-        return isUsbtToUsdt ? amountIn * state.price : amountIn / state.price;
+      if (price && price > 0) {
+        return isUsbtToUsdt ? amountIn * price : amountIn / price;
       }
 
       return null;
     },
-    [state.price, state.reserveUsbt, state.reserveUsdt, fetchReservesViaGrid]
+    [fetchReservesViaGrid]  // stable — reads latest state via stateRef
   );
 
   return { ...state, fetchPrice, getAmountsOut };

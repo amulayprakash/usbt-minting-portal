@@ -112,7 +112,7 @@ export default function SellPortal() {
       setQuoteLoading(false);
     }, 400);
     return () => clearTimeout(t);
-  }, [usbtAmount, getAmountsOut, price]);
+  }, [usbtAmount, getAmountsOut]);
 
   const handleMaxUsbt = () => {
     if (usbtBalance !== null) {
