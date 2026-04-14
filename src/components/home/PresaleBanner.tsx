@@ -6,8 +6,8 @@ import { useTheme } from '../../hooks/useTheme';
 import { useState, useEffect } from 'react';
 import Button from '../ui/Button';
 
-// Presale ends 15 days from 2026-03-26
-const PRESALE_END = new Date('2026-04-10T23:59:59Z').getTime();
+// Presale ends 2026-05-05
+const PRESALE_END = new Date('2026-05-05T23:59:59Z').getTime();
 
 function getTimeLeft() {
   const diff = PRESALE_END - Date.now();
