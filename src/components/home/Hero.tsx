@@ -317,7 +317,7 @@ function TokenVisual() {
         >
           <div className="absolute top-3 left-4 w-11 h-5 rounded-full bg-white/[0.07] blur-md" />
           <img
-            src="/usbt-logo.png"
+            src="/logo-new.png"
             alt="USBT"
             className={`relative z-10 w-[64px] h-[64px] object-contain ${isDark ? 'drop-shadow-[0_0_14px_rgba(6,182,212,0.58)]' : 'drop-shadow-[0_2px_6px_rgba(6,182,212,0.2)]'}`}
             draggable={false}

@@ -22,7 +22,7 @@ export default function Logo({ size = 'md', showWordmark = true, className }: Lo
         style={{ width: dim, height: dim }}
       >
         <img
-          src="/usbt-logo.png"
+          src="/logo-new.png"
           alt="USBT"
           width={dim}
           height={dim}

@@ -369,7 +369,7 @@ export default function SellPortal() {
                     style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}
                   >
                     <div className="w-5 h-5 rounded-full flex-shrink-0 overflow-hidden" style={{ background: '#06b6d4' }}>
-                      <img src="/usbt-logo.png" alt="USBT" width="20" height="20" className="w-5 h-5 rounded-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                      <img src="/logo-new.png" alt="USBT" width="20" height="20" className="w-5 h-5 rounded-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                     </div>
                     <span className="text-sm font-bold text-white">USBT</span>
                   </div>
