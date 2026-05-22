@@ -24,7 +24,7 @@ export async function getSignClient() {
       name: 'USBT Exchange',
       description: 'Mint and trade USBT on Tron Mainnet',
       url: window.location.origin,
-      icons: [`${window.location.origin}/favicon.svg`],
+      icons: [`${window.location.origin}/favicon.png`],
     },
   });
   return _client;
